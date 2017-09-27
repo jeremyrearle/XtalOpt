@@ -109,86 +109,7 @@ namespace GlobalSearch {
     if (filename.isEmpty())
       return;
 
-    readTemplatesFromSettings(filename);
-    readUserValuesFromSettings(filename);
     readDataFromSettings(filename);
-  }
-
-  void Optimizer::readTemplatesFromSettings(const QString &filename)
-  {
-    SETTINGS(filename);
-
-    QStringList filenames = getTemplateNames();
-    for (int i = 0; i < filenames.size(); i++) {
-      QStringList temp = settings->value(m_opt->getIDString().toLower() +
-                                         "/optimizer/" +
-                                         getIDString() + "/" +
-                                         filenames.at(i) + "_list",
-                                         "").toStringList();
-      temp.removeAll("");
-      if (!temp.empty()) {
-        m_templates.insert(filenames.at(i), temp);
-        continue;
-      }
-
-      // If "temp" is empty, perhaps we have some template filenames to open
-      QStringList templateFileNames =
-        settings->value(m_opt->getIDString().toLower() + "/optimizer/" +
-                        getIDString() + "/" + filenames.at(i) + "_templates",
-                        "").toStringList();
-      templateFileNames.removeAll("");
-      // Loop through the files and see if they exist. If they do, store
-      // the contents in m_templates
-      for (const auto& templateFile : templateFileNames) {
-        QFile file(templateFile);
-        if (!file.exists()) {
-          qWarning() << "Warning in " << __FUNCTION__ << ": " << templateFile
-                     << "does not exist!";
-          continue;
-        }
-        if (!file.open(QIODevice::ReadOnly)) {
-          qWarning() << "Warning in " << __FUNCTION__ << ": " << templateFile
-                     << "could not be opened!";
-          continue;
-        }
-        temp.append(file.readAll());
-        file.close();
-      }
-      m_templates.insert(filenames[i], temp);
-    }
-
-    // QueueInterface templates
-    settings->beginGroup(m_opt->getIDString().toLower() +
-                         "/optimizer/" +
-                         getIDString() + "/QI/" +
-                         m_opt->queueInterface()->getIDString());
-    filenames = m_QITemplates.keys();
-    for (QStringList::const_iterator
-           it = filenames.constBegin(),
-           it_end = filenames.constEnd();
-         it != it_end;
-         ++it) {
-      m_QITemplates.insert(*it,
-                           settings->value((*it) + "_list",
-                                           "").toStringList());
-    }
-    settings->endGroup();
-
-    fixTemplateLengths();
-  }
-
-  void Optimizer::readUserValuesFromSettings(const QString &filename)
-  {
-    SETTINGS(filename);
-
-    settings->beginGroup(m_opt->getIDString().toLower() +
-                         "/optimizer/" +
-                         getIDString());
-    m_user1 = settings->value("/user1", "").toString();
-    m_user2 = settings->value("/user2", "").toString();
-    m_user3 = settings->value("/user3", "").toString();
-    m_user4 = settings->value("/user4", "").toString();
-    settings->endGroup();
   }
 
   void Optimizer::readDataFromSettings(const QString &filename)
@@ -212,67 +133,10 @@ namespace GlobalSearch {
     if (filename.isEmpty())
       return;
 
-    writeTemplatesToSettings(filename);
-    writeUserValuesToSettings(filename);
     writeDataToSettings(filename);
     if (m_opt->queueInterface()) {
       m_opt->queueInterface()->writeSettings(filename);
     }
-  }
-
-  void Optimizer::writeTemplatesToSettings(const QString &filename)
-  {
-    SETTINGS(filename);
-    QStringList filenames = getTemplateNames();
-    for (int i = 0; i < filenames.size(); i++) {
-      settings->setValue(m_opt->getIDString().toLower() +
-                         "/optimizer/" +
-                         getIDString() + "/" +
-                         filenames.at(i) + "_list",
-                         m_templates.value(filenames.at(i)));
-    }
-
-    // QueueInterface templates
-    settings->beginGroup(m_opt->getIDString().toLower() +
-                         "/optimizer/" +
-                         getIDString() + "/QI/" +
-                         m_opt->queueInterface()->getIDString());
-    filenames = m_QITemplates.keys();
-    for (QStringList::const_iterator
-           it = filenames.constBegin(),
-           it_end = filenames.constEnd();
-         it != it_end;
-         ++it) {
-      settings->setValue((*it) + "_list",
-                         m_QITemplates.value(*it));
-    }
-    settings->endGroup();
-  }
-
-  void Optimizer::writeUserValuesToSettings(const QString &filename)
-  {
-    SETTINGS(filename);
-
-    settings->setValue(m_opt->getIDString().toLower() +
-                       "/optimizer/" +
-                       getIDString() +
-                       "/user1",
-                       m_user1);
-    settings->setValue(m_opt->getIDString().toLower() +
-                       "/optimizer/" +
-                       getIDString() +
-                       "/user2",
-                       m_user2);
-    settings->setValue(m_opt->getIDString().toLower() +
-                       "/optimizer/" +
-                       getIDString() +
-                       "/user3",
-                       m_user3);
-    settings->setValue(m_opt->getIDString().toLower() +
-                       "/optimizer/" +
-                       getIDString() +
-                       "/user4",
-                       m_user4);
   }
 
   void Optimizer::writeDataToSettings(const QString &filename)
@@ -288,7 +152,7 @@ namespace GlobalSearch {
                          m_data.value(ids.at(i)));
     }
   }
-
+/*
   QHash<QString, QString>
   Optimizer::getInterpretedTemplates(Structure *structure)
   {
@@ -300,12 +164,6 @@ namespace GlobalSearch {
 
     // Check optstep info
     int optStep = structure->getCurrentOptStep();
-
-    Q_ASSERT_X(optStep <= m_opt->optimizer()->getNumberOfOptSteps(),
-               Q_FUNC_INFO, QString("OptStep of Structure %1 exceeds "
-                                    "number of known OptSteps (%2, limit %3).")
-               .arg(structure->getIDString()).arg(optStep)
-               .arg(m_opt->optimizer()->getNumberOfOptSteps()).toStdString().c_str());
 
     // Unlock for optimizer calls
     locker.unlock();
@@ -347,7 +205,7 @@ namespace GlobalSearch {
 
     return hash;
   }
-
+*/
   QDialog* Optimizer::dialog()
   {
     if (!m_dialog) {
@@ -369,7 +227,7 @@ namespace GlobalSearch {
     m_QITemplates.clear();
 
     QStringList init;
-    for (unsigned int i = 0; i < getNumberOfOptSteps(); ++i) {
+    for (unsigned int i = 0; i < m_opt->numOptSteps(); ++i) {
       init << "";
     }
 
@@ -494,96 +352,6 @@ namespace GlobalSearch {
     return true;
   }
 
-  int Optimizer::getNumberOfOptSteps() const
-  {
-    if (m_templates.isEmpty())
-      return 0;
-    else
-      return std::max_element(m_templates.cbegin(), m_templates.cend(),
-                              [](const QStringList& lhs,
-                                 const QStringList& rhs)
-                              {
-                                return lhs.size() < rhs.size();
-                              })->size();
-  }
-
-  bool Optimizer::setTemplate(const QString &filename,
-                              const QString &templateData,
-                              int optStepIndex)
-  {
-    Q_ASSERT(m_templates.contains(filename) ||
-             m_QITemplates.contains(filename));
-    Q_ASSERT(optStepIndex >= 0 && optStepIndex < getNumberOfOptSteps());
-
-    resolveTemplateHash(filename)[filename][optStepIndex] = templateData;
-    return true;
-  }
-
-  bool Optimizer::setTemplate(const QString &filename,
-                              const QStringList &templateData)
-  {
-    Q_ASSERT(m_templates.contains(filename) ||
-             m_QITemplates.contains(filename));
-
-    resolveTemplateHash(filename).insert(filename, templateData);
-    return true;
-  }
-
-
-  QString Optimizer::getTemplate(const QString &filename,
-                                 int optStepIndex)
-  {
-    Q_ASSERT(m_templates.contains(filename) ||
-             m_QITemplates.contains(filename));
-    Q_ASSERT(optStepIndex >= 0 && optStepIndex < getNumberOfOptSteps());
-
-    return resolveTemplateHash(filename)[filename][optStepIndex];
-  }
-
-  QStringList Optimizer::getTemplate(const QString &filename)
-  {
-    Q_ASSERT(m_templates.contains(filename) ||
-             m_QITemplates.contains(filename));
-
-    return resolveTemplateHash(filename)[filename];
-  }
-
-  bool Optimizer::appendTemplate(const QString &filename,
-                                 const QString &templateData)
-  {
-    Q_ASSERT(m_templates.contains(filename) ||
-             m_QITemplates.contains(filename));
-
-    resolveTemplateHash(filename)[filename].append(templateData);
-    return true;
-  }
-
-  bool Optimizer::removeAllTemplatesForOptStep(int optStepIndex)
-  {
-    Q_ASSERT(optStepIndex >= 0 &&
-             optStepIndex < getNumberOfOptSteps());
-
-    // Remove the indicated optStep from each template
-    QList<QString> templateKeys = m_templates.keys();
-    QList<QString> QITemplateKeys = m_QITemplates.keys();
-    for (QStringList::const_iterator
-           it = templateKeys.constBegin(),
-           it_end = templateKeys.constEnd();
-         it != it_end; ++it) {
-      if (m_templates[*it].size() > optStepIndex)
-        m_templates[*it].removeAt(optStepIndex);
-    }
-    for (QStringList::const_iterator
-           it = QITemplateKeys.constBegin(),
-           it_end = QITemplateKeys.constEnd();
-         it != it_end; ++it) {
-      if (m_QITemplates[*it].size() > optStepIndex)
-        m_QITemplates[*it].removeAt(optStepIndex);
-    }
-
-    return true;
-  }
-
   bool Optimizer::setData(const QString &identifier, const QVariant &data)
   {
     Q_ASSERT(m_data.contains(identifier));
@@ -597,86 +365,6 @@ namespace GlobalSearch {
     Q_ASSERT(m_data.contains(identifier));
 
     return m_data.value(identifier);
-  }
-
-  QHash<QString, QStringList> &
-  Optimizer::resolveTemplateHash(const QString &filename)
-  {
-    if (m_templates.contains(filename)) {
-      return m_templates;
-    }
-    else if (m_QITemplates.contains(filename)) {
-      return m_QITemplates;
-    }
-    else {
-      qFatal("In %s:\n\t%s '%s'\n",
-             Q_FUNC_INFO,
-             "No current template contains file",
-             filename.toStdString().c_str());
-    }
-    // Shouldn't be reached, but otherwise MSVC complains:
-    Q_ASSERT(false);
-    return *(new QHash<QString, QStringList>());
-  }
-
-  const QHash<QString, QStringList> &
-  Optimizer::resolveTemplateHash(const QString &filename) const
-  {
-    if (m_templates.contains(filename)) {
-      return m_templates;
-    }
-    else if (m_QITemplates.contains(filename)) {
-      return m_QITemplates;
-    }
-    else {
-      qFatal("In %s:\n\t%s '%s'\n",
-             Q_FUNC_INFO,
-             "No current template contains file",
-             filename.toStdString().c_str());
-    }
-    // Shouldn't be reached, but otherwise MSVC complains:
-    Q_ASSERT(false);
-    return *(new QHash<QString, QStringList>());
-  }
-
-  void Optimizer::fixTemplateLengths()
-  {
-    int steps = getNumberOfOptSteps();
-    if (steps < 1) {
-      steps = 1;
-    }
-
-    // Optimizer:
-    QStringList filenames = m_templates.keys();
-    for (QStringList::const_iterator
-           it = filenames.constBegin(),
-           it_end = filenames.constEnd();
-         it != it_end;
-         ++it) {
-      QStringList &current = m_templates[*it];
-      while (current.size() > steps) {
-        current.removeLast();
-      }
-      while (current.size() < steps) {
-        current << "";
-      }
-    }
-
-    // Optimizer:
-    filenames = m_QITemplates.keys();
-    for (QStringList::const_iterator
-           it = filenames.constBegin(),
-           it_end = filenames.constEnd();
-         it != it_end;
-         ++it) {
-      QStringList &current = m_QITemplates[*it];
-      while (current.size() > steps) {
-        current.removeLast();
-      }
-      while (current.size() < steps) {
-        current << "";
-      }
-    }
   }
 
 } // end namespace GlobalSearch

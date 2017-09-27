@@ -107,6 +107,14 @@ namespace GlobalSearch {
     virtual void removeCurrentOptStep();
 
     /**
+     * Get the current opt step index.
+     *
+     * @return The curent opt step index.
+     */
+    virtual int getCurrentOptStep()
+      { return ui_list_optStep->currentRow(); }
+
+    /**
      * Save the current optimization scheme. This will prompt for the
      * user to specify the filename.
      */
@@ -119,10 +127,10 @@ namespace GlobalSearch {
     virtual void loadScheme();
 
     /**
-     * @return A list of the available template names for the current
-     * QueueInterface and Optimizer.
+     * @return A list of the available template names for the QueueInterface
+     *         and Optimizer at a particular opt step.
      */
-    virtual QStringList getTemplateNames();
+    virtual QStringList getTemplateNames(size_t optStep);
 
   signals:
     /**

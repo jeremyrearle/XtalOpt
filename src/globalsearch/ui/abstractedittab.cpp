@@ -286,13 +286,16 @@ namespace GlobalSearch {
     d->exec();
   }
 
-  QStringList AbstractEditTab::getTemplateNames()
+  QStringList AbstractEditTab::getTemplateNames(size_t optStep)
   {
     if (!m_isInitialized) {
       return QStringList();
     }
-    QStringList templateNames = m_opt->optimizer()->getTemplateNames();
-    templateNames.append(m_opt->queueInterface()->getTemplateFileNames());
+    QStringList templateNames =
+      m_opt->optimizer(optStep)->getTemplateFileNames();
+    templateNames.append(
+      m_opt->queueInterface(optStep)->getTemplateFileNames()
+    );
     qSort(templateNames);
     return templateNames;
   }
@@ -302,9 +305,10 @@ namespace GlobalSearch {
     if (!m_isInitialized) {
       return;
     }
+    int optStepIndex = getCurrentOptStep();
     ui_combo_templates->blockSignals(true);
     ui_combo_templates->clear();
-    ui_combo_templates->insertItems(0, getTemplateNames());
+    ui_combo_templates->insertItems(0, getTemplateNames(optStepIndex));
     ui_combo_templates->blockSignals(false);
     ui_combo_templates->setCurrentIndex(0);
   }
@@ -314,20 +318,19 @@ namespace GlobalSearch {
     if (!m_isInitialized) {
       return;
     }
-    QStringList filenames = getTemplateNames();
+    int optStepIndex = getCurrentOptStep();
+    QStringList filenames = getTemplateNames(optStepIndex);
     int templateInd = ui_combo_templates->currentIndex();
     QString templateName = ui_combo_templates->currentText();
     Q_ASSERT(templateInd >= 0 && templateInd < filenames.size());
     Q_ASSERT(templateName.compare(filenames.at(templateInd)) == 0);
 
-    if (m_opt->optimizer()->getNumberOfOptSteps() !=
-        ui_list_optStep->count()) {
+    if (m_opt->getNumOptSteps() != ui_list_optStep->count()) {
       populateOptStepList();
     }
 
-    int optStepIndex = ui_list_optStep->currentRow();
     Q_ASSERT(optStepIndex >= 0 &&
-             optStepIndex < m_opt->optimizer()->getNumberOfOptSteps());
+             optStepIndex < m_opt->getNumOptSteps());
 
     // Display appropriate entry widget. Only text entry is supported
     // by default, reimplement this function in the derived class if
@@ -338,8 +341,8 @@ namespace GlobalSearch {
     ui_edit_edit->setVisible(true);
 
     // Update text edit widget
-    Q_ASSERT(getTemplateNames().contains(templateName));
-    QString text = m_opt->optimizer()->getTemplate(templateName, optStepIndex);
+    Q_ASSERT(getTemplateNames(optStepIndex).contains(templateName));
+    QString text = m_opt->getTemplate(optStepIndex, templateName);
 
     ui_edit_edit->blockSignals(true);
     ui_edit_edit->setText(text);
@@ -349,27 +352,26 @@ namespace GlobalSearch {
 
   void AbstractEditTab::saveCurrentTemplate()
   {
-    QStringList filenames = getTemplateNames();
+    int optStepIndex = getCurrentOptStep();
+    QStringList filenames = getTemplateNames(optStepIndex);
     int templateInd = ui_combo_templates->currentIndex();
     QString templateName = ui_combo_templates->currentText();
     Q_ASSERT(templateInd >= 0 && templateInd < filenames.size());
     Q_ASSERT(templateName.compare(filenames.at(templateInd)) == 0);
 
-    if (m_opt->optimizer()->getNumberOfOptSteps() !=
-        ui_list_optStep->count()) {
+    if (m_opt->getNumOptSteps() != ui_list_optStep->count())
       populateOptStepList();
-    }
 
-    int optStepIndex = ui_list_optStep->currentRow();
-    Q_ASSERT(optStepIndex >= 0 &&
-             optStepIndex < m_opt->optimizer()->getNumberOfOptSteps());
+    int optStepIndex = getCurrentOptStep();//getCurrentOptStep();
+    Q_ASSERT(optStepIndex >= 0 && optStepIndex < m_opt->getNumOptSteps());
 
     // Here we only update from the text edit widget. If any templates
     // are using the list input, reimplement this function in the
     // derived class and handle the lists appropriately.
     QString text = ui_edit_edit->document()->toPlainText();
 
-    m_opt->optimizer()->setTemplate(templateName, text, optStepIndex);
+    m_opt->setTemplate(optStepIndex, templateName.toStdString(),
+                       text.toStdString());
 
     ui_edit_edit->setCurrentFont(QFont("Courier"));
   }
@@ -396,8 +398,8 @@ namespace GlobalSearch {
       return;
     }
 
-    int currentOptStep = ui_list_optStep->currentRow();
-    const int maxSteps = m_opt->optimizer()->getNumberOfOptSteps();
+    int currentOptStep = getCurrentOptStep();
+    const int maxSteps = m_opt->getNumOptSteps();
     if (currentOptStep < 0) currentOptStep = 0;
     if (currentOptStep >= maxSteps) currentOptStep = maxSteps - 1;
 
@@ -412,23 +414,11 @@ namespace GlobalSearch {
   void AbstractEditTab::appendOptStep()
   {
     // Reimplement in derived class if Optimizer generic data is needed
-    const int maxSteps = m_opt->optimizer()->getNumberOfOptSteps();
-    const int currentOptStep = ui_list_optStep->currentRow();
+    const int maxSteps = m_opt->getNumOptSteps();
+    const int currentOptStep = getCurrentOptStep();
     Q_ASSERT(currentOptStep >= 0 && currentOptStep < maxSteps);
 
-    // Copy the current files into a new entry at the end of the opt step list
-    //  Optimizer templates
-    QStringList templates = getTemplateNames();
-
-    for (QStringList::const_iterator
-           it = templates.constBegin(),
-           it_end = templates.constEnd();
-         it != it_end;
-         ++it) {
-      m_opt->optimizer()->
-        appendTemplate(*it, m_opt->optimizer()->
-                       getTemplate(*it, currentOptStep));
-    }
+    m_opt->appendOptStep();
 
     populateOptStepList();
   }
@@ -436,11 +426,11 @@ namespace GlobalSearch {
   void AbstractEditTab::removeCurrentOptStep()
   {
     // Reimplement in derived class if Optimizer generic data is needed
-    const int maxSteps = m_opt->optimizer()->getNumberOfOptSteps();
-    const int currentOptStep = ui_list_optStep->currentRow();
+    const int maxSteps = m_opt->getNumOptSteps();
+    const int currentOptStep = getCurrentOptStep();
     Q_ASSERT(currentOptStep >= 0 && currentOptStep < maxSteps);
 
-    m_opt->optimizer()->removeAllTemplatesForOptStep(currentOptStep);
+    m_opt->removeOptStep(currentOptStep);
 
     populateOptStepList();
   }

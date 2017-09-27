@@ -539,7 +539,7 @@ namespace GlobalSearch {
 
     // update optstep and relaunch if necessary
     if (s->getCurrentOptStep()
-        < static_cast<unsigned int>(m_opt->optimizer()->getNumberOfOptSteps())) {
+        < static_cast<unsigned int>(m_opt->getNumOptSteps())) {
 
       // Print an update to the terminal if we are not using the GUI
       if (!m_opt->usingGUI()) {

@@ -254,6 +254,16 @@ namespace GlobalSearch {
      */
     QStringList getTemplateFileNames() const {return m_templates;};
 
+    /**
+     * Check if a name is a template file name.
+     *
+     * @param name The template file name.
+     *
+     * @return True if "name" is a template file name. False otherwise.
+     */
+    bool isTemplateFileName(const char* name) const
+      { return m_templates.contains(name); }
+
     /// \defgroup dialog Dialog access
 
     /**
@@ -279,7 +289,7 @@ namespace GlobalSearch {
     QString m_idString;
 
     /// QStringList containing list of all template filenames
-    /// @note templates are actually handled in Optimizer
+    /// @note templates are actually handled in OptBase
     QStringList m_templates;
 
     /// Whether this QueueInterface has a configuration dialog.
