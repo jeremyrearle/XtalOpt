@@ -841,8 +841,8 @@ for (ind = 0; ind < probs.size(); ind++)
      * @param filename The filename to be written to. If empty, the config file
      *                 will be used.
      */
-    void writeQueueInterfaceTemplatesFromSettings(size_t optStep,
-                                                  const std::string& filename);
+    void writeQueueInterfaceTemplatesToSettings(size_t optStep,
+                                                const std::string& filename);
 
     /**
      * Write the optimizer templates to the settings.
@@ -851,8 +851,8 @@ for (ind = 0; ind < probs.size(); ind++)
      * @param filename The filename to be written to. If empty, the config file
      *                 will be used.
      */
-    void writeOptimizerTemplatesFromSettings(size_t optStep,
-                                             const std::string& filename);
+    void writeOptimizerTemplatesToSettings(size_t optStep,
+                                           const std::string& filename);
 
     /**
      * Write the queue interface and optimizer templates to the settings.
@@ -861,8 +861,8 @@ for (ind = 0; ind < probs.size(); ind++)
      * @param filename The filename to be written to. If empty, the config file
      *                 will be used.
      */
-    void writeTemplatesFromSettings(size_t optStep,
-                                    const std::string& filename);
+    void writeTemplatesToSettings(size_t optStep,
+                                  const std::string& filename);
 
     /**
      * Write all templates for every opt step to the settings. Also writes

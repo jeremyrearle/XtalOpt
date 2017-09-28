@@ -412,10 +412,10 @@ namespace GlobalSearch {
   {
     QString rep = "";
     // User data
-    if (line == "user1")                rep += optimizer()->getUser1();
-    else if (line == "user2")           rep += optimizer()->getUser2();
-    else if (line == "user3")           rep += optimizer()->getUser3();
-    else if (line == "user4")           rep += optimizer()->getUser4();
+    if (line == "user1")                rep += getUser1().c_str();
+    else if (line == "user2")           rep += getUser2().c_str();
+    else if (line == "user3")           rep += getUser3().c_str();
+    else if (line == "user4")           rep += getUser4().c_str();
     else if (line == "description")     rep += description;
     else if (line == "percent")         rep += "%";
 
@@ -799,12 +799,13 @@ namespace GlobalSearch {
     SETTINGS(settingsFile.c_str());
 
     settings->beginGroup(getIDString().toLower() +
-                         "/queueInterface/" + queue->getIDString() + "/"
+                         "/queueInterface/" + queue->getIDString() + "/" +
                          QString::number(optStep));
     QStringList filenames = queue->getTemplateFileNames();
     for (const auto& filename: filenames) {
-      QString temp = settings->value(filename);
-      setQueueInterfaceTemplate(optStep, filename.toStdString(), temp);
+      QString temp = settings->value(filename).toString();
+      setQueueInterfaceTemplate(optStep, filename.toStdString(),
+                                temp.toStdString());
     }
     settings->endGroup();
   }
@@ -827,15 +828,17 @@ namespace GlobalSearch {
                          QString::number(optStep));
     QStringList filenames = optim->getTemplateFileNames();
     for (const auto& filename: filenames) {
-      QString temp = settings->value(filename);
+      QString temp = settings->value(filename).toString();
 
       if (!temp.isEmpty()) {
-        setOptimizerTemplate(optStep, filename.toStdString(), temp);
+        setOptimizerTemplate(optStep, filename.toStdString(),
+                             temp.toStdString());
         continue;
       }
 
       // If "temp" is empty, perhaps we have some template filenames to open
-      QString templateFile = settings->value(filename + "_templates");
+      QString templateFile =
+        settings->value(filename + "_templates").toString();
 
       if (templateFile.isEmpty())
         continue;
@@ -870,10 +873,10 @@ namespace GlobalSearch {
 
   void OptBase::readAllTemplatesFromSettings(const std::string& filename)
   {
-    QSETTINGS(filename.c_str());
+    SETTINGS(filename.c_str());
     settings->beginGroup(getIDString().toLower());
     size_t numOptSteps = settings->value("numOptSteps").toUInt();
-    while (getNumOptSteps() < numOptsteps)
+    while (getNumOptSteps() < numOptSteps)
       appendOptStep();
 
     for (size_t i = 0; i < getNumOptSteps(); ++i)
@@ -892,7 +895,7 @@ namespace GlobalSearch {
       return;
     }
 
-    SETTINGS(settingsFilename);
+    SETTINGS(settingsFilename.c_str());
     // QueueInterface templates
     settings->beginGroup(getIDString().toLower() +
                          "/queueInterface/" + queue->getIDString() + "/" +
@@ -900,13 +903,15 @@ namespace GlobalSearch {
 
     QStringList filenames = queue->getTemplateFileNames();
     for (const auto& filename: filenames) {
-      settings->setValue(filename,
-                         getQueueInterfaceTemplate(optStep, filename).c_str());
+      settings->setValue(
+          filename,
+          getQueueInterfaceTemplate(optStep, filename.toStdString()).c_str()
+      );
     }
     settings->endGroup();
   }
 
-  void Optimizer::writeOptimizerTemplatesToSettings(
+  void OptBase::writeOptimizerTemplatesToSettings(
                                            size_t optStep,
                                            const std::string& settingsFilename)
   {
@@ -917,7 +922,7 @@ namespace GlobalSearch {
       return;
     }
 
-    SETTINGS(settingsFilename);
+    SETTINGS(settingsFilename.c_str());
     // Optimizer templates
     settings->beginGroup(getIDString().toLower() +
                          "/optimizer/" + optim->getIDString() + "/" +
@@ -925,8 +930,10 @@ namespace GlobalSearch {
 
     QStringList filenames = optim->getTemplateFileNames();
     for (const auto& filename: filenames) {
-      settings->setValue(filename,
-                         getOptimizerTemplate(optStep, filename).c_str());
+      settings->setValue(
+          filename,
+          getOptimizerTemplate(optStep, filename.toStdString()).c_str()
+      );
     }
     settings->endGroup();
   }
@@ -940,9 +947,9 @@ namespace GlobalSearch {
 
   void OptBase::writeAllTemplatesToSettings(const std::string& filename)
   {
-    QSETTINGS(filename.c_str());
+    SETTINGS(filename.c_str());
     settings->beginGroup(getIDString().toLower());
-    settings->setvalue("numOptSteps", getNumOptSteps());
+    settings->setValue("numOptSteps", QString::number(getNumOptSteps()));
     for (size_t i = 0; i < getNumOptSteps(); ++i)
       writeTemplatesToSettings(i, filename);
     settings->endGroup();
@@ -950,7 +957,7 @@ namespace GlobalSearch {
 
   void OptBase::readUserValuesFromSettings(const std::string& filename)
   {
-    SETTINGS(filename);
+    SETTINGS(filename.c_str());
 
     settings->beginGroup(getIDString().toLower());
     m_user1 = settings->value("/user1", "").toString().toStdString();
@@ -962,7 +969,7 @@ namespace GlobalSearch {
 
   void OptBase::writeUserValuesToSettings(const std::string& filename)
   {
-    SETTINGS(filename.toStdString());
+    SETTINGS(filename.c_str());
 
     settings->setValue(getIDString().toLower() +
                        "/user1",

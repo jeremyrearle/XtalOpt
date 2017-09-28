@@ -17,18 +17,19 @@
 
 #include <globalsearch/ui/abstracttab.h>
 
+#include <globalsearch/optbase.h>
+
 #include <QList>
+#include <QListWidget>
 #include <QStringList>
 
 class QComboBox;
 class QLineEdit;
-class QListWidget;
 class QPushButton;
 class QTextEdit;
 
 namespace GlobalSearch {
   class AbstractDialog;
-  class OptBase;
   class Optimizer;
   class QueueInterface;
 
@@ -113,6 +114,22 @@ namespace GlobalSearch {
      */
     virtual int getCurrentOptStep()
       { return ui_list_optStep->currentRow(); }
+
+    /**
+     * Get the optimizer for the currently selected step.
+     *
+     * @return The optimizer for the currently selected step.
+     */
+    virtual Optimizer* getCurrentOptimizer()
+      { return m_opt->optimizer(getCurrentOptStep()); }
+
+    /**
+     * Get the queue interface for the currently selected step.
+     *
+     * @return The queue interface for the currently selected step.
+     */
+    virtual QueueInterface* getCurrentQueueInterface()
+      { return m_opt->queueInterface(getCurrentOptStep()); }
 
     /**
      * Save the current optimization scheme. This will prompt for the

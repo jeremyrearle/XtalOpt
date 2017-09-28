@@ -16,6 +16,7 @@
 #define QUEUEINTERFACE_H
 
 #include <globalsearch/optbase.h>
+#include <globalsearch/structure.h>
 
 #include <QObject>
 #include <QHash>
@@ -24,7 +25,6 @@
 class QDialog;
 
 namespace GlobalSearch {
-  class Structure;
 
   /**
    * @class QueueInterface queueinterface.h <globalsearch/queueinterface.h>
@@ -263,6 +263,12 @@ namespace GlobalSearch {
      */
     bool isTemplateFileName(const char* name) const
       { return m_templates.contains(name); }
+
+    /**
+     * Get the current optimizer being used for a particular structure.
+     */
+    Optimizer* getCurrentOptimizer(Structure* s) const
+      { return m_opt->optimizer(s->getCurrentOptStep()); }
 
     /// \defgroup dialog Dialog access
 

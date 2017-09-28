@@ -90,12 +90,6 @@ namespace GlobalSearch {
     // Set the name of the optimizer to be returned by getIDString()
     m_idString = "Generic";
 
-    if (m_opt->queueInterface()) {
-      updateQueueInterface();
-    }
-    connect(m_opt, SIGNAL(queueInterfaceChanged(const std::string&)),
-            this, SLOT(updateQueueInterface()));
-
     readSettings(filename);
   }
 
@@ -134,9 +128,6 @@ namespace GlobalSearch {
       return;
 
     writeDataToSettings(filename);
-    if (m_opt->queueInterface()) {
-      m_opt->queueInterface()->writeSettings(filename);
-    }
   }
 
   void Optimizer::writeDataToSettings(const QString &filename)
@@ -152,60 +143,40 @@ namespace GlobalSearch {
                          m_data.value(ids.at(i)));
     }
   }
-/*
+
   QHash<QString, QString>
-  Optimizer::getInterpretedTemplates(Structure *structure)
+  Optimizer::getInterpretedTemplates(Structure* s)
   {
     // Stop any running jobs associated with this structure
-    m_opt->queueInterface()->stopJob(structure);
+    m_opt->queueInterface(s->getCurrentOptStep())->stopJob(s);
 
     // Lock
-    QReadLocker locker (&structure->lock());
+    QReadLocker locker(&s->lock());
 
     // Check optstep info
-    int optStep = structure->getCurrentOptStep();
+    int optStep = s->getCurrentOptStep();
 
     // Unlock for optimizer calls
     locker.unlock();
 
     // Build hash
     QHash<QString, QString> hash;
-    QStringList filenames = m_templates.keys();
-    QString contents;
-    for (QStringList::const_iterator
-           it = filenames.constBegin(),
-           it_end = filenames.constEnd();
-         it != it_end;
-         it++) {
+    QStringList filenames =
+      m_opt->queueInterface(s->getCurrentOptStep())->getTemplateFileNames();
+    filenames.append(
+      m_opt->optimizer(s->getCurrentOptStep())->getTemplateFileNames()
+    );
+
+    for (const auto& filename: filenames) {
       // For debugging template issues
-      //qDebug() << "Templates: *it is" << *it;
-      //qDebug() << "size is" << m_templates.value(*it).size();
-      //qDebug() << "optStep is" << optStep - 1;
-      hash.insert((*it), m_opt->interpretTemplate(m_templates.value(*it)
-                                                  .at(optStep - 1),
-                                                  structure));
-      //qDebug() << "Interpreted template is " << hash[*it];
-    }
-    // QueueInterface templates
-    filenames = m_QITemplates.keys();
-    for (QStringList::const_iterator
-           it = filenames.constBegin(),
-           it_end = filenames.constEnd();
-         it != it_end;
-         it++) {
-      // For debugging template issues
-      //qDebug() << "QITemplates: *it is" << *it;
-      //qDebug() << "size is" << m_QITemplates.value(*it).size();
-      //qDebug() << "optStep is" << optStep - 1;
-      hash.insert((*it), m_opt->interpretTemplate(m_QITemplates.value(*it)
-                                                  .at(optStep - 1),
-                                                  structure));
-      //qDebug() << "Interpreted QITemplate is " << hash[*it];
+      //qDebug() << "optStep is" << optStep;
+      std::string temp = m_opt->getTemplate(optStep, filename.toStdString());
+      hash.insert(filename, m_opt->interpretTemplate(temp.c_str(), s));
     }
 
     return hash;
   }
-*/
+
   QDialog* Optimizer::dialog()
   {
     if (!m_dialog) {
@@ -222,30 +193,11 @@ namespace GlobalSearch {
     return d;
   }
 
-  void Optimizer::updateQueueInterface()
-  {
-    m_QITemplates.clear();
-
-    QStringList init;
-    for (unsigned int i = 0; i < m_opt->numOptSteps(); ++i) {
-      init << "";
-    }
-
-    QStringList filenames = m_opt->queueInterface()->getTemplateFileNames();
-    for (QStringList::const_iterator
-           it = filenames.constBegin(),
-           it_end = filenames.constEnd();
-         it != it_end;
-         ++it) {
-      m_QITemplates.insert(*it, init);
-    }
-  }
-
   bool Optimizer::checkIfOutputFileExists(Structure *s, bool *exists)
   {
-    return m_opt->queueInterface()->checkIfFileExists(s,
-                                                      m_completionFilename,
-                                                      exists);
+    return m_opt->queueInterface(s->getCurrentOptStep())->checkIfFileExists(
+             s, m_completionFilename, exists
+           );
   }
 
   bool Optimizer::checkForSuccessfulOutput(Structure *s, bool *success)
@@ -257,11 +209,9 @@ namespace GlobalSearch {
            it_end = m_completionStrings.constEnd();
          it != it_end;
          ++it) {
-      if (!m_opt->queueInterface()->grepFile(s,
-                                             (*it),
-                                             m_completionFilename,
-                                             0,
-                                             &ec)) {
+      if (!m_opt->queueInterface(s->getCurrentOptStep())->grepFile(
+            s, (*it), m_completionFilename, 0, &ec
+          )) {
         qDebug() << "For structure "
                  << QString::number(s->getGeneration()) + "x" +
                     QString::number(s->getIDNumber()) << ":";
@@ -286,7 +236,9 @@ namespace GlobalSearch {
 
     // Copy remote files over, other prep work:
     locker.unlock();
-    bool ok = m_opt->queueInterface()->prepareForStructureUpdate(structure);
+    bool ok = m_opt->queueInterface(
+                structure->getCurrentOptStep()
+              )->prepareForStructureUpdate(structure);
     locker.relock();
     if (!ok) {
       m_opt->warning(tr("Optimizer::update: Error while preparing to update structure %1")

@@ -197,6 +197,16 @@ namespace GlobalSearch {
       { return m_templates.contains(name); }
 
     /**
+     * Get a QHash of the interpreted templates.
+     *
+     * @param s The structure whose templates are to be interpreted.
+     *
+     * @return A QHash of the template filename to its contents.
+     */
+    QHash<QString, QString> getInterpretedTemplates(Structure* s);
+
+
+    /**
      * @return All strings that identify valid generic data sets.
      */
     virtual QStringList getDataIdentifiers() {return m_data.keys();};
@@ -299,15 +309,6 @@ namespace GlobalSearch {
      * @ingroup dialog
      */
     virtual QDialog* dialog();
-
-  protected slots:
-    /**
-     * Update the m_QITemplates hash.
-     *
-     * Automatically connected to m_opt's queueInterfaceChanged
-     * signal. Should not need to be called directly.
-     */
-    virtual void updateQueueInterface();
 
   protected:
     /**

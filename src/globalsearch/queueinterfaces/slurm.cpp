@@ -344,7 +344,7 @@ namespace GlobalSearch {
       if (status.isEmpty()) {
         // check if the output file is absent
         bool exists;
-        if (!m_opt->optimizer()->checkIfOutputFileExists(s, &exists)) {
+        if (!getCurrentOptimizer(s)->checkIfOutputFileExists(s, &exists)) {
           return QueueInterface::CommunicationError;
         }
         if (!exists) {
@@ -401,7 +401,7 @@ namespace GlobalSearch {
     else if (status.isEmpty()) { // Entry is missing from queue. Were the output files written?
       locker.unlock();
       bool outputFileExists;
-      if (!m_opt->optimizer()->checkIfOutputFileExists(s, &outputFileExists) ) {
+      if (!getCurrentOptimizer(s)->checkIfOutputFileExists(s, &outputFileExists) ) {
         return QueueInterface::CommunicationError;
       }
       locker.relock();
@@ -409,7 +409,7 @@ namespace GlobalSearch {
       if (outputFileExists) {
         // Did the job finish successfully?
         bool success;
-        if (!m_opt->optimizer()->checkForSuccessfulOutput(s, &success)) {
+        if (!getCurrentOptimizer(s)->checkForSuccessfulOutput(s, &success)) {
           return QueueInterface::CommunicationError;
         }
         if (success) {

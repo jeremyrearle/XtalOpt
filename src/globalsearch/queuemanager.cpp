@@ -267,8 +267,11 @@ namespace GlobalSearch {
       // This prevents hammering the pbs server from multiple XtalOpt instances
       // if there is a problem with the queue.
 #ifdef ENABLE_SSH
-      if (qobject_cast<RemoteQueueInterface*>
-          (m_opt->queueInterface()) != nullptr) {
+      Structure *s;
+      if (m_jobStartTracker.popFirst(s) &&
+          qobject_cast<RemoteQueueInterface*>(
+            m_opt->queueInterface(s->getCurrentOptStep())
+          ) != nullptr) {
         if (m_lastSubmissionTimeStamp->secsTo(QDateTime::currentDateTime())
             >= 3 + (6 * getRandDouble())) {
           startJob();
@@ -443,7 +446,7 @@ namespace GlobalSearch {
       return;
     }
 
-    switch (m_opt->queueInterface()->getStatus(s)) {
+    switch (m_opt->queueInterface(s->getCurrentOptStep())->getStatus(s)) {
     case QueueInterface::Running:
     case QueueInterface::Queued:
     case QueueInterface::CommunicationError:
@@ -686,7 +689,7 @@ namespace GlobalSearch {
       return;
     }
 
-    switch (m_opt->queueInterface()->getStatus(s)) {
+    switch (m_opt->queueInterface(s->getCurrentOptStep())->getStatus(s)) {
     case QueueInterface::Running:
     case QueueInterface::Queued:
     case QueueInterface::Success:
@@ -847,7 +850,7 @@ namespace GlobalSearch {
     s->resetFailCount();
     s->setStatus(Structure::Updating);
     s->lock().unlock();
-    if (!m_opt->optimizer()->update(s)) {
+    if (!m_opt->optimizer(s->getCurrentOptStep())->update(s)) {
       s->lock().lockForWrite();
       s->setStatus(Structure::Error);
       s->lock().unlock();
@@ -904,14 +907,14 @@ namespace GlobalSearch {
     s->lock().lockForWrite();
     if (s->getStatus() != Structure::Optimized) {
       s->setStatus(Structure::WaitingForOptimization);
-      if (optStep != 0) {
+      if (optStep != -1) {
         s->setCurrentOptStep(optStep);
       }
     }
     s->lock().unlock();
 
     // Perform writing
-    m_opt->queueInterface()->writeInputFiles(s);
+    m_opt->queueInterface(s->getCurrentOptStep())->writeInputFiles(s);
 
     m_jobStartTracker.lockForWrite();
     m_jobStartTracker.append(s);
@@ -932,12 +935,12 @@ namespace GlobalSearch {
       return;
     }
 
-    if (!m_opt->queueInterface()->startJob(s)) {
+    if (!m_opt->queueInterface(s->getCurrentOptStep())->startJob(s)) {
       s->lock().lockForWrite();
       m_opt->warning(tr("QueueManager::startJob_: Job did not start "
                         "successfully for structure %1-%2.")
                      .arg(s->getIDString())
-                     .arg(s->getCurrentOptStep()));
+                     .arg(s->getCurrentOptStep() + 1));
       s->setStatus(Structure::Error);
       s->lock().unlock();
       return;
@@ -959,7 +962,7 @@ namespace GlobalSearch {
 
   void QueueManager::stopJob(Structure *s)
   {
-    m_opt->queueInterface()->stopJob(s);
+    m_opt->queueInterface(s->getCurrentOptStep())->stopJob(s);
   }
 
   QList<Structure*> QueueManager::getAllRunningStructures()

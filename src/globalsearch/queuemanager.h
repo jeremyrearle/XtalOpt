@@ -298,7 +298,7 @@ m_queue->unlockForNaming(newStructure);
      * @param s The Structure to be submitted
      */
     void addStructureToSubmissionQueue(GlobalSearch::Structure *s) {
-      addStructureToSubmissionQueue(s, 0);}
+      addStructureToSubmissionQueue(s, -1);}
 
     /**
      * Move \b this to the QThread specified in the constructor and
