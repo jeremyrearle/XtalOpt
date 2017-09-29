@@ -162,10 +162,8 @@ namespace GlobalSearch {
     // Build hash
     QHash<QString, QString> hash;
     QStringList filenames =
-      m_opt->queueInterface(s->getCurrentOptStep())->getTemplateFileNames();
-    filenames.append(
-      m_opt->optimizer(s->getCurrentOptStep())->getTemplateFileNames()
-    );
+      m_opt->queueInterface(optStep)->getTemplateFileNames();
+    filenames.append(m_opt->optimizer(optStep)->getTemplateFileNames());
 
     for (const auto& filename: filenames) {
       // For debugging template issues

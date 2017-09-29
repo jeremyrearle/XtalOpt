@@ -37,11 +37,7 @@ namespace XtalOpt {
       getInterpretedTemplates(GlobalSearch::Structure *structure);
 
     void readSettings(const QString &filename = "");
-    void writeTemplatesToSettings(const QString &filename = "");
     void writeDataToSettings(const QString &filename = "");
-
-    void buildPOTCARs();
-    bool POTCARInfoIsUpToDate(QList<uint> comp);
   };
 
 } // end namespace XtalOpt

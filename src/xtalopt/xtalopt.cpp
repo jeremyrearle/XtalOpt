@@ -211,13 +211,8 @@ namespace XtalOpt {
     }
 
     QString err;
-    if (!m_optimizer->isReadyToSearch(&err)) {
-      error(tr("Optimizer is not fully initialized:") + "\n\n" + err);
-      return false;
-    }
-
-    if (!m_queueInterface->isReadyToSearch(&err)) {
-      error(tr("QueueInterface is not fully initialized:") + "\n\n" + err);
+    if (!isReadyToSearch(err)) {
+      error(tr("Error: search is not ready to start: ") + err);
       return false;
     }
 
@@ -258,31 +253,31 @@ namespace XtalOpt {
     };
 
     // VASP checks:
-    if (m_optimizer->getIDString() == "VASP") {
-      // Is the POTCAR generated? If not, warn user in log and launch
-      // generator. Every POTCAR will be identical in this case!
-      QList<uint> oldcomp, atomicNums = comp.keys();
-      QList<QVariant> oldcomp_ = m_optimizer->getData("Composition").toList();
-      for (int i = 0; i < oldcomp_.size(); i++)
-        oldcomp.append(oldcomp_.at(i).toUInt());
-      qSort(atomicNums);
-      if (m_usingGUI) {
-        if (m_optimizer->getData("POTCAR info").toList().isEmpty() || // No info
-            oldcomp != atomicNums // Composition has changed!
-            ) {
-          error("Using VASP and POTCAR is empty. Please select the "
-                "pseudopotentials before continuing.");
-          return false;
+    for (size_t i = 0; i < getNumOptSteps(); ++i) {
+      if (optimizer(i)->getIDString() == "VASP") {
+        // Is the POTCAR generated? If not, warn user in log and launch
+        // generator. Every POTCAR will be identical in this case!
+        QList<uint> oldcomp, atomicNums = comp.keys();
+        QList<QVariant> oldcomp_ =
+          optimizer(i)->getData("Composition").toList();
+        for (int i = 0; i < oldcomp_.size(); i++)
+          oldcomp.append(oldcomp_.at(i).toUInt());
+        qSort(atomicNums);
+        if (m_usingGUI) {
+          if (optimizer(i)->getData("POTCAR info").toList().isEmpty() ||
+              oldcomp != atomicNums // Composition has changed!
+              ) {
+            error("Using VASP and POTCAR is empty. Please select the "
+                  "pseudopotentials before continuing.");
+            return false;
+          }
         }
       }
-
-      // Build up the latest and greatest POTCAR compilation
-      qobject_cast<VASPOptimizer*>(m_optimizer)->buildPOTCARs();
     }
 
 #ifdef ENABLE_SSH
     // Create the SSHManager if running remotely
-    if (qobject_cast<RemoteQueueInterface*>(m_queueInterface) != 0) {
+    if (anyRemoteQueueInterfaces()) {
       if (!this->createSSHConnections()) {
         error(tr("Could not create ssh connections."));
         return false;
@@ -601,11 +596,17 @@ namespace XtalOpt {
     settings->setValue("remote/username", username);
     settings->setValue("remote/rempath", rempath);
 
-    settings->setValue("optimizer", optimizer()->getIDString().toLower());
-    settings->setValue("queueInterface", queueInterface()->getIDString().toLower());
+    for (size_t i = 0; i < getNumOptSteps(); ++i) {
+      settings->setValue("optimizer/" + QString::number(i),
+                         optimizer(i)->getIDString().toLower());
+      settings->setValue("queueInterface/" + QString::number(i),
+                         queueInterface(i)->getIDString().toLower());
+    }
     settings->setValue("logErrorDirs", m_logErrorDirs);
     settings->endGroup();
-    optimizer()->writeSettings(filename);
+
+    for (size_t i = 0; i < getNumOptSteps(); ++i)
+      optimizer(i)->writeSettings(filename);
 
     settings->beginGroup("xtalopt/opt/");
 
@@ -689,19 +690,24 @@ namespace XtalOpt {
       username = tmpstr;
     }
 
-    QString queueInterface =
-        settings->value("queueInterface", "local").toString().toLower();
+    size_t numOptSteps = settings->value("numOptSteps", "1").toUInt();
 
-    setQueueInterface(queueInterface.toStdString());
+    for (size_t i = 0; i < numOptSteps; ++i) {
 
-    this->queueInterface()->readSettings(filename);
+      QString queueInterface =
+          settings->value("queueInterface", "local").toString().toLower();
 
-    QString optimizerName =
-      settings->value("optimizer", "gulp").toString().toLower();
+      setQueueInterface(i, queueInterface.toStdString());
 
-    setOptimizer(optimizerName.toStdString());
+      this->queueInterface(i)->readSettings(filename);
 
-    this->optimizer()->readSettings(filename);
+      QString optimizerName =
+        settings->value("optimizer", "gulp").toString().toLower();
+
+      setOptimizer(i, optimizerName.toStdString());
+
+      this->optimizer(i)->readSettings(filename);
+    }
 
     settings->endGroup();
     return true;
@@ -920,7 +926,8 @@ namespace XtalOpt {
     }
 
     xtal->moveToThread(m_queue->thread());
-    if ( !m_optimizer->read(xtal, filename) || !this->checkComposition(xtal, &err)) {
+    if (!optimizer(0)->read(xtal, filename) ||
+        !this->checkComposition(xtal, &err)) {
       error(tr("Error loading seed %1\n\n%2").arg(filename).arg(err));
       xtal->deleteLater();
       return false;
@@ -2532,13 +2539,11 @@ namespace XtalOpt {
     // Reject the structure if using VASP and the determinant of the
     // cell matrix is negative (otherwise VASP complains about a
     // "negative triple product")
-    if (qobject_cast<VASPOptimizer*>(m_optimizer) != 0 &&
-        xtal->unitCell().cellMatrix().determinant() <= 0.0) {
+    if (xtal->unitCell().cellMatrix().determinant() <= 0.0) {
       qDebug() << "Rejecting structure" << xtal->getIDString()
-               << ": using VASP negative triple product.";
+               << ": determinant of unit cell is negative or zero.";
       if (err != nullptr) {
-        *err = "Unit cell matrix cannot have a negative triple product "
-            "when using VASP.";
+        *err = "Unit cell matrix cannot have a negative or zero determinant.";
       }
       return false;
     }
@@ -3147,7 +3152,7 @@ namespace XtalOpt {
 
 #ifdef ENABLE_SSH
     // Create the SSHManager if running remotely
-    if (qobject_cast<RemoteQueueInterface*>(m_queueInterface) != 0) {
+    if (anyRemoteQueueInterfaces()) {
       if (!this->createSSHConnections()) {
         error(tr("Could not create ssh connections."));
         return false;
@@ -3155,10 +3160,8 @@ namespace XtalOpt {
     }
 #endif // ENABLE_SSH
 
-    debug(tr("Resuming XtalOpt session in '%1' (%2) readOnly = %3")
+    debug(tr("Resuming XtalOpt session in '%1' readOnly = %2")
           .arg(filename)
-          .arg((m_optimizer) ? m_optimizer->getIDString()
-                             : "No set optimizer")
           .arg( (readOnly) ? "true" : "false"));
 
     // Xtals
@@ -3169,7 +3172,7 @@ namespace XtalOpt {
     // Restarted.
     bool restartInProcessStructures = false;
     bool clearJobIDs = false;
-    if (qobject_cast<LocalQueueInterface*>(m_queueInterface)) {
+    if (!anyRemoteQueueInterfaces()) {
       restartInProcessStructures = true;
       clearJobIDs = true;
     }
@@ -3308,18 +3311,6 @@ namespace XtalOpt {
         locker.unlock();
         updateLowestEnthalpyFUList_(qobject_cast<Structure*>(xtal));
         loadedStructures.append(qobject_cast<Structure*>(xtal));
-        continue;
-      }
-      // If we are loading a previous version,
-      // attempt to load the xtal data from the output files
-      if (!m_optimizer->load(xtal)) {
-        error(tr("Error, no (or not appropriate for %1) xtal data in "
-                 "%2.\n\nThis could be a result of resuming a structure "
-                 "that has not yet done any local optimizations. If so, "
-                 "safely ignore this message.")
-              .arg(m_optimizer->getIDString())
-              .arg(xtal->fileName()));
-        delete xtal;
         continue;
       }
 
@@ -4248,47 +4239,57 @@ namespace XtalOpt {
 
     stream << "\nQueue Interface Settings: \n";
 
-    const GlobalSearch::QueueInterface* queue = m_queueInterface;
-    if (!queue) {
-      stream << "  queueInterface: NONE\n";
-    }
-    else {
-      stream << "  queueInterface: " << queue->getIDString() << "\n";
-      stream << "  localWorkingDirectory: " << filePath << "\n";
-      stream << "  logErrorDirectories: " << toString(m_logErrorDirs) << "\n";
-
-#ifdef ENABLE_SSH
-      if (queue->getIDString().toLower() != "local") {
-        stream << "\n  remoteQueueSettings: \n";
-        stream << "    host: " << host << "\n";
-        stream << "    port: " << port << "\n";
-        stream << "    username: " << username << "\n";
-        stream << "    remoteWorkingDirectory: " << rempath << "\n";
-
-        const GlobalSearch::RemoteQueueInterface* remoteQueue =
-          qobject_cast<const GlobalSearch::RemoteQueueInterface*>(queue);
-
-        stream << "    submitCommand: " << remoteQueue->submitCommand() << "\n";
-        stream << "    cancelCommand: " << remoteQueue->cancelCommand() << "\n";
-        stream << "    statusCommand: " << remoteQueue->statusCommand() << "\n";
-        stream << "    queueRefreshInterval: "
-               << remoteQueue->queueRefreshInterval() << "\n";
-        stream << "    cleanRemoteDirs: "
-               << toString(remoteQueue->cleanRemoteOnStop()) << "\n";
+    bool anyRemote = false;
+    for (size_t i = 0; i < getNumOptSteps(); ++i) {
+      stream << " OptStep " << i + 1 << ":\n";
+      const GlobalSearch::QueueInterface* queue = queueInterface(i);
+      if (!queue) {
+        stream << "  queueInterface: NONE\n";
       }
+      else {
+        stream << "  queueInterface: " << queue->getIDString() << "\n";
+#ifdef ENABLE_SSH
+        if (queue->getIDString().toLower() != "local") {
+          anyRemote = true;
+
+          const GlobalSearch::RemoteQueueInterface* remoteQueue =
+            qobject_cast<const GlobalSearch::RemoteQueueInterface*>(queue);
+
+          stream << "    submitCommand: " << remoteQueue->submitCommand() << "\n";
+          stream << "    cancelCommand: " << remoteQueue->cancelCommand() << "\n";
+          stream << "    statusCommand: " << remoteQueue->statusCommand() << "\n";
+          stream << "    queueRefreshInterval: "
+                 << remoteQueue->queueRefreshInterval() << "\n";
+          stream << "    cleanRemoteDirs: "
+                 << toString(remoteQueue->cleanRemoteOnStop()) << "\n";
+        }
 #endif
+      }
     }
+
+    if (anyRemote) {
+      stream << "\n  remoteQueueSettings: \n";
+      stream << "    host: " << host << "\n";
+      stream << "    port: " << port << "\n";
+      stream << "    username: " << username << "\n";
+      stream << "    remoteWorkingDirectory: " << rempath << "\n";
+    }
+
+    stream << "\n  localQueueSettings: \n";
+    stream << "  localWorkingDirectory: " << filePath << "\n";
+    stream << "  logErrorDirectories: " << toString(m_logErrorDirs) << "\n";
 
     stream << "\nOptimizer settings:\n";
 
-    const GlobalSearch::Optimizer* optimizer = m_optimizer;
-    if (!optimizer) {
-      stream << "  optimize: NONE\n";
-    }
-    else {
-      stream << "  optimizer: " << optimizer->getIDString() << "\n";
-      stream << "  numOptimizationSteps: " << optimizer->getNumberOfOptSteps()
-             << "\n";
+    for (size_t i = 0; i < getNumOptSteps(); ++i) {
+      stream << " OptStep " << i + 1 << "\n";
+      const GlobalSearch::Optimizer* opt = optimizer(i);
+      if (!opt) {
+        stream << "  optimizer: NONE\n";
+      }
+      else {
+        stream << "  optimizer: " << opt->getIDString() << "\n";
+      }
     }
   }
 

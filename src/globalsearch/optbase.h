@@ -647,7 +647,7 @@ for (ind = 0; ind < probs.size(); ind++)
      *
      * @return The number of optimization steps for our search.
      */
-    size_t getNumOptSteps() { return m_numOptSteps; }
+    size_t getNumOptSteps() const { return m_numOptSteps; }
 
     /**
      * Clear all optimization steps.
@@ -686,13 +686,13 @@ for (ind = 0; ind < probs.size(); ind++)
     /**
      * Update the QueueInterface to \a q.
      *
+     * @param optStep The optimization step for which to set the QI.
      * @param qiName The name of the queue interface to use. Does nothing if
      *               @p qiName isn't in the m_queueInterfaces map.
-     * @param optStep The optimization step for which to set the QI.
      *
      * @sa queueInterface
      */
-    void setQueueInterface(const std::string& qiName, size_t optStep = 0);
+    void setQueueInterface(size_t optStep, const std::string& qiName);
 
     /**
      * Get a queue interface template for a particular opt step and a
@@ -721,13 +721,13 @@ for (ind = 0; ind < probs.size(); ind++)
     /**
      * Update the Optimizer to the one indicated
      *
+     * @param optStep The opt step for which to set the optimizer
      * @param optName New Optimizer to use. Does nothing if @p optName
      *                isn't in the m_optimizers map.
-     * @param optStep The opt step for which to set the optimizer
      *
      * @sa optimizer
      */
-    void setOptimizer(const std::string& optName, size_t optStep = 0);
+    void setOptimizer(size_t optStep, const std::string& optName);
 
    /**
      * Get an optimizer template for a particular opt step and a
@@ -932,6 +932,23 @@ for (ind = 0; ind < probs.size(); ind++)
      * interpretation.
      */
     void setUser4(const std::string& s) { m_user4 = s; }
+
+    /**
+     * Are we ready to search (checks that essential variables are set and
+     * that the queue interfaces and optimizers are ready for the search).
+     *
+     * @param err The error message if we are not ready to search.
+     *
+     * @return True if ready to search. False otherwise.
+     */
+    bool isReadyToSearch(QString& err) const;
+
+    /**
+     * Do we have any remote queue interfaces?
+     *
+     * @return True if we do. False if we do not.
+     */
+    bool anyRemoteQueueInterfaces() const;
 
     /**
      * Prompt user with a "Yes/No" dialog.

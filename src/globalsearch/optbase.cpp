@@ -485,6 +485,17 @@ namespace GlobalSearch {
     else if (line == "id")            	rep += QString::number(structure->getIDNumber());
     else if (line == "incar")         	rep += QString::number(structure->getCurrentOptStep());
     else if (line == "optStep")       	rep += QString::number(structure->getCurrentOptStep());
+    else if (line.startsWith("filecontents:", Qt::CaseInsensitive)) {
+      QString filename = line;
+      filename.remove(0, QString("filecontents:").size());
+      // Attempt to open the file
+      QFile file(filename);
+      if (!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "Error in" << __FUNCTION__ << ": could not open"
+                 << filename;
+      }
+      rep += file.readAll();
+    }
 
     if (!rep.isEmpty()) {
       // Remove any trailing newlines
@@ -616,7 +627,7 @@ namespace GlobalSearch {
     --m_numOptSteps;
   }
 
-  void OptBase::setQueueInterface(const std::string& qiName, size_t optStep)
+  void OptBase::setQueueInterface(size_t optStep, const std::string& qiName)
   {
     if (m_queueInterfaces.count(qiName) == 0) {
       qDebug() << "Error in" << __FUNCTION__ << ": unknown Queue Interface"
@@ -662,7 +673,7 @@ namespace GlobalSearch {
     m_queueInterfaceTemplates[optStep][name] = temp;
   }
 
-  void OptBase::setOptimizer(const std::string& optName, size_t optStep)
+  void OptBase::setOptimizer(size_t optStep, const std::string& optName)
   {
     if (m_optimizers.count(optName) == 0) {
       qDebug() << "Error in" << __FUNCTION__ << ": unknown optName:"
@@ -985,6 +996,45 @@ namespace GlobalSearch {
                        m_user4.c_str());
   }
 
+  bool OptBase::isReadyToSearch(QString& err) const
+  {
+    err.clear();
+    if (filePath.isEmpty()) {
+      err += "Local working directory is not set.";
+      return false;
+    }
+
+    for (size_t i = 0; i < getNumOptSteps(); ++i) {
+      if (!queueInterface(i)) {
+        err += "Queue interface at opt step " + QString::number(i + 1) +
+               " is not set!";
+        return false;
+      }
+
+      if (!optimizer(i)) {
+        err += "Optimizer at opt step " + QString::number(i + 1) +
+               " is not set!";
+        return false;
+      }
+
+      if (!queueInterface(i)->isReadyToSearch(&err))
+        return false;
+
+      if (!optimizer(i)->isReadyToSearch(&err))
+        return false;
+    }
+
+    return true;
+  }
+
+  bool OptBase::anyRemoteQueueInterfaces() const
+  {
+    for (size_t i = 0; i < getNumOptSteps(); ++i) {
+      if (queueInterface(i)->getIDString().toLower() != "local")
+        return true;
+    }
+    return false;
+  }
 
   void OptBase::promptForPassword(const QString &message,
                                   QString *newPassword,

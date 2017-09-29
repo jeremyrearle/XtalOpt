@@ -36,10 +36,6 @@ namespace XtalOpt {
 
     QHash<QString, QString>
       getInterpretedTemplates(GlobalSearch::Structure *structure);
-
-
-    void buildPSFs();
-    bool PSFInfoIsUpToDate(QList<uint> comp);
   };
 
 } // end namespace XtalOpt
