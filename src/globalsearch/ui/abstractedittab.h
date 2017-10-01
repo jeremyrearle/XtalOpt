@@ -121,7 +121,10 @@ namespace GlobalSearch {
      * @return The optimizer for the currently selected step.
      */
     virtual Optimizer* getCurrentOptimizer()
-      { return m_opt->optimizer(getCurrentOptStep()); }
+    {
+      return (getCurrentOptStep() < 0 ? nullptr :
+                                        m_opt->optimizer(getCurrentOptStep()));
+    }
 
     /**
      * Get the queue interface for the currently selected step.
@@ -129,7 +132,10 @@ namespace GlobalSearch {
      * @return The queue interface for the currently selected step.
      */
     virtual QueueInterface* getCurrentQueueInterface()
-      { return m_opt->queueInterface(getCurrentOptStep()); }
+      {
+        return (getCurrentOptStep() < 0 ? nullptr :
+                                  m_opt->queueInterface(getCurrentOptStep()));
+      }
 
     /**
      * Save the current optimization scheme. This will prompt for the
@@ -153,12 +159,12 @@ namespace GlobalSearch {
     /**
      * Emitted when the Optimizer changes.
      */
-    void optimizerChanged(int optStep, const std::string&);
+    void optimizerChanged(size_t optStep, const std::string&);
 
     /**
      * Emitted when the QueueInterface changes.
      */
-    void queueInterfaceChanged(int optStep, const std::string&);
+    void queueInterfaceChanged(size_t optStep, const std::string&);
 
   protected slots:
     /**

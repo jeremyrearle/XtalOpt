@@ -56,27 +56,27 @@ namespace GlobalSearch {
     ui_edit_edit->setCurrentFont(QFont("Courier"));
 
     // opt connections
-    connect(this, SIGNAL(optimizerChanged(int, const std::string&)),
-            m_opt, SLOT(setOptimizer(int, const std::string&)),
+    connect(this, SIGNAL(optimizerChanged(size_t, const std::string&)),
+            m_opt, SLOT(setOptimizer(size_t, const std::string&)),
             Qt::DirectConnection);
-    connect(this, SIGNAL(queueInterfaceChanged(int, const std::string&)),
-            m_opt, SLOT(setQueueInterface(int, const std::string&)),
+    connect(this, SIGNAL(queueInterfaceChanged(size_t, const std::string&)),
+            m_opt, SLOT(setQueueInterface(size_t, const std::string&)),
             Qt::DirectConnection);
 
     // Dialog connections
-    connect(this, SIGNAL(optimizerChanged(int, const std::string&)),
+    connect(this, SIGNAL(optimizerChanged(size_t, const std::string&)),
             m_dialog, SIGNAL(tabsUpdateGUI()));
-    connect(this, SIGNAL(queueInterfaceChanged(int, const std::string&)),
+    connect(this, SIGNAL(queueInterfaceChanged(size_t, const std::string&)),
             m_dialog, SIGNAL(tabsUpdateGUI()));
 
     // Edit tab connections
-    connect(this, SIGNAL(optimizerChanged(int, const std::string&)),
+    connect(this, SIGNAL(optimizerChanged(size_t, const std::string&)),
             this, SLOT(populateTemplates()));
-    connect(this, SIGNAL(queueInterfaceChanged(int, const std::string&)),
+    connect(this, SIGNAL(queueInterfaceChanged(size_t, const std::string&)),
             this, SLOT(populateTemplates()));
-    connect(this, SIGNAL(optimizerChanged(int, const std::string&)),
+    connect(this, SIGNAL(optimizerChanged(size_t, const std::string&)),
             this, SLOT(populateOptStepList()));
-    connect(this, SIGNAL(queueInterfaceChanged(int, const std::string&)),
+    connect(this, SIGNAL(queueInterfaceChanged(size_t, const std::string&)),
             this, SLOT(populateOptStepList()));
     connect(ui_push_optimizerConfig, SIGNAL(clicked()),
             this, SLOT(configureOptimizer()));
@@ -121,6 +121,9 @@ namespace GlobalSearch {
     for (const auto& qiName: m_queueInterfaces)
       ui_combo_queueInterfaces->insertItem(index++, qiName);
 
+    if (index != 0)
+      ui_combo_queueInterfaces->setCurrentIndex(0);
+
     ui_combo_queueInterfaces->blockSignals(false);
 
     //  Optimizers
@@ -130,9 +133,13 @@ namespace GlobalSearch {
     for (const auto& optName: m_optimizers)
       ui_combo_optimizers->insertItem(index++, optName);
 
+    if (index != 0)
+      ui_combo_optimizers->setCurrentIndex(0);
+
     ui_combo_optimizers->blockSignals(false);
 
     AbstractTab::initialize();
+
     updateGUI();
   }
 
@@ -178,8 +185,8 @@ namespace GlobalSearch {
       ui_push_queueInterfaceConfig->setEnabled(false);
     }
 
-    populateTemplates();
     populateOptStepList();
+    populateTemplates();
 
     updateEditWidget();
 
@@ -304,6 +311,7 @@ namespace GlobalSearch {
     if (!m_isInitialized) {
       return;
     }
+
     int optStepIndex = getCurrentOptStep();
     ui_combo_templates->blockSignals(true);
     ui_combo_templates->clear();
@@ -392,11 +400,13 @@ namespace GlobalSearch {
     ui_list_optStep->clear();
 
     // Just return if either QI or optimizer are missing
+/*
     if (!getCurrentOptimizer() || !getCurrentQueueInterface()) {
+      qDebug() << "Missing optimizer or QI!";
       ui_list_optStep->blockSignals(false);
       return;
     }
-
+*/
     int currentOptStep = getCurrentOptStep();
     const int maxSteps = m_opt->getNumOptSteps();
     if (currentOptStep < 0) currentOptStep = 0;
