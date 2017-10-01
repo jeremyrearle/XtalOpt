@@ -305,36 +305,14 @@ for (ind = 0; ind < probs.size(); ind++)
      * @sa setQueueInterface
      * @sa queueInterfaceChanged
      */
-    QueueInterface* queueInterface(int optStep) const
-    {
-      if (optStep >= getNumOptSteps()) {
-        qDebug() << "Error in" << __FUNCTION__ << ": optStep," << optStep
-                 << ", is out of bounds! The number of optimization steps is:"
-                 << getNumOptSteps();
-        qDebug() << "Backtrace:";
-        printBackTrace();
-        return nullptr;
-      }
-      return m_queueInterfaceAtOptStep[optStep].get();
-    }
+    QueueInterface* queueInterface(int optStep) const;
 
     /**
      * @return A pointer to the current Optimizer.
      * @sa setOptimizer
      * @sa optimizerChanged
      */
-    Optimizer* optimizer(int optStep) const
-    {
-      if (optStep >= getNumOptSteps()) {
-        qDebug() << "Error in" << __FUNCTION__ << ": optStep," << optStep
-                 << ", is out of bounds! The number of optimization steps is:"
-                 << getNumOptSteps();
-        qDebug() << "Backtrace:";
-        printBackTrace();
-        return nullptr;
-      }
-      return m_optimizerAtOptStep[optStep].get();
-    }
+    Optimizer* optimizer(int optStep) const;
 
     /**
      * @return A pointer to the SSHManager instance.

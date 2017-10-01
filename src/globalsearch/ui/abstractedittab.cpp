@@ -123,10 +123,10 @@ namespace GlobalSearch {
     for (const auto& qiName: m_queueInterfaces)
       ui_combo_queueInterfaces->insertItem(index++, qiName);
 
+    ui_combo_queueInterfaces->blockSignals(false);
+
     if (index != 0)
       ui_combo_queueInterfaces->setCurrentIndex(0);
-
-    ui_combo_queueInterfaces->blockSignals(false);
 
     //  Optimizers
     ui_combo_optimizers->blockSignals(true);
@@ -135,10 +135,10 @@ namespace GlobalSearch {
     for (const auto& optName: m_optimizers)
       ui_combo_optimizers->insertItem(index++, optName);
 
+    ui_combo_optimizers->blockSignals(false);
+
     if (index != 0)
       ui_combo_optimizers->setCurrentIndex(0);
-
-    ui_combo_optimizers->blockSignals(false);
 
     AbstractTab::initialize();
 
@@ -167,14 +167,14 @@ namespace GlobalSearch {
 
     if (getCurrentOptimizer()) {
       int optIndex = m_optimizers.indexOf(
-                       getCurrentOptimizer()->getIDString()
+                       getCurrentOptimizer()->getIDString().toLower()
                      );
       ui_combo_optimizers->setCurrentIndex(optIndex);
     }
 
     if (getCurrentQueueInterface()) {
       int qiIndex = m_queueInterfaces.indexOf(
-                      getCurrentQueueInterface()->getIDString()
+                      getCurrentQueueInterface()->getIDString().toLower()
                     );
       ui_combo_queueInterfaces->setCurrentIndex(qiIndex);
       if (getCurrentQueueInterface()->hasDialog()) {
@@ -220,14 +220,7 @@ namespace GlobalSearch {
 
     Q_ASSERT(newQiIndex <= m_queueInterfaces.size() - 1);
 
-    // Check that queueInterface has actually changed
-    if (m_queueInterfaces.indexOf(
-          getCurrentQueueInterface()->getIDString()
-        ) == newQiIndex && getCurrentQueueInterface() != 0) {
-      return;
-    }
-
-    QueueInterface *qi = m_opt->queueInterface(newQiIndex);
+    QueueInterface *qi = m_opt->queueInterface(getCurrentOptStep());
 
     if (qi->hasDialog()) {
       ui_push_queueInterfaceConfig->setEnabled(true);
@@ -249,19 +242,15 @@ namespace GlobalSearch {
 
     Q_ASSERT(newOptimizerIndex <= m_optimizers.size() - 1);
 
-    // Check that optimizer has actually changed
-    if (m_optimizers.indexOf(getCurrentOptimizer()->getIDString()) ==
-        newOptimizerIndex && getCurrentOptimizer() != 0) {
-      return;
-    }
-
-    Optimizer *o = m_opt->optimizer(newOptimizerIndex);
+    Optimizer *o = getCurrentOptimizer();
 
     if (o->hasDialog()) {
       ui_push_optimizerConfig->setEnabled(true);
     } else {
       ui_push_optimizerConfig->setEnabled(false);
     }
+
+    qDebug() << "Current opt step is " << getCurrentOptStep();
 
     emit optimizerChanged(getCurrentOptStep(),
                           o->getIDString().toLower().toStdString());

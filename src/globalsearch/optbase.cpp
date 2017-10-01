@@ -535,11 +535,38 @@ namespace GlobalSearch {
     return nullptr;
   }
 
-  std::unique_ptr<Optimizer> OptBase::createOptimizer(const std::string& optName)
+  std::unique_ptr<Optimizer>
+  OptBase::createOptimizer(const std::string& optName)
   {
     qDebug() << "Error:" << __FUNCTION__ << "not implemented. It needs to"
              << "be overridden in a derived class.";
     return nullptr;
+  }
+
+  QueueInterface* OptBase::queueInterface(int optStep) const
+  {
+    if (optStep >= getNumOptSteps()) {
+      qDebug() << "Error in" << __FUNCTION__ << ": optStep," << optStep
+               << ", is out of bounds! The number of optimization steps is:"
+               << getNumOptSteps();
+      qDebug() << "Backtrace:";
+      printBackTrace();
+      return nullptr;
+    }
+    return m_queueInterfaceAtOptStep[optStep].get();
+  }
+
+  Optimizer* OptBase::optimizer(int optStep) const
+  {
+    if (optStep >= getNumOptSteps()) {
+      qDebug() << "Error in" << __FUNCTION__ << ": optStep," << optStep
+               << ", is out of bounds! The number of optimization steps is:"
+               << getNumOptSteps();
+      qDebug() << "Backtrace:";
+      printBackTrace();
+      return nullptr;
+    }
+    return m_optimizerAtOptStep[optStep].get();
   }
 
   void OptBase::clearOptSteps()
