@@ -69,20 +69,21 @@ namespace XtalOpt {
   void XtalOptUnitTest::constructDialog()
   {
     m_dialog = new XtalOptDialog(nullptr, nullptr, false);
-    QVERIFY(m_dialog != 0);
+    QVERIFY(m_dialog != nullptr);
   }
 
   void XtalOptUnitTest::constructXtalOpt()
   {
     m_opt = new XtalOpt(m_dialog);
     m_opt->tol_spg = 0.05;
-    QVERIFY(m_opt != 0);
+    QVERIFY(m_opt != nullptr);
   }
 
   void XtalOptUnitTest::setOptimizer()
   {
-    m_opt->setOptimizer("gulp");
-    QVERIFY(m_opt->optimizer() != 0);
+    m_opt->appendOptStep();
+    m_opt->setOptimizer(0, "gulp");
+    QVERIFY(m_opt->optimizer(0) != nullptr);
   }
 
   void XtalOptUnitTest::loadTest()

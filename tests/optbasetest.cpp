@@ -87,7 +87,8 @@ void OptBaseTest::initTestCase()
 {
   m_opt = new DummyOptBase();
   m_opt->optimizers()["dummy"] = make_unique<DummyOptimizer>(m_opt);
-  m_opt->setOptimizer("dummy");
+  m_opt->appendOptStep();
+  m_opt->setOptimizer(0, "dummy");
 }
 
 void OptBaseTest::cleanupTestCase()
@@ -228,10 +229,10 @@ void OptBaseTest::interpretKeyword()
 
   // Setup
   m_opt->description = DESCRIPTION;
-  m_opt->optimizer()->setUser1(USER1);
-  m_opt->optimizer()->setUser2(USER2);
-  m_opt->optimizer()->setUser3(USER3);
-  m_opt->optimizer()->setUser4(USER4);
+  m_opt->setUser1(USER1.toStdString());
+  m_opt->setUser2(USER2.toStdString());
+  m_opt->setUser3(USER3.toStdString());
+  m_opt->setUser4(USER4.toStdString());
 
   Structure *s = new Structure;
   for (int i = 0; i < NUMATOMS; ++i) {

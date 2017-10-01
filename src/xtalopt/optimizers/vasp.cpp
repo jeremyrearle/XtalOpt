@@ -40,9 +40,9 @@ namespace XtalOpt {
     m_data.insert("Composition",QVariant());
 
     // Set allowed filenames, e.g.
-    m_templates.insert("INCAR");
-    m_templates.insert("POTCAR");
-    m_templates.insert("KPOINTS");
+    m_templates.append("INCAR");
+    m_templates.append("POTCAR");
+    m_templates.append("KPOINTS");
 
     // Setup for completion values
     m_completionFilename = "OUTCAR";
@@ -63,7 +63,7 @@ namespace XtalOpt {
     m_stderrFilename = "";
 
     readSettings(filename);
-
+  }
 
   void VASPOptimizer::readSettings(const QString &filename)
   {

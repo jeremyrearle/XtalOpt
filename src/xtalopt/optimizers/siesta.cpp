@@ -33,8 +33,8 @@ namespace XtalOpt {
     m_data.insert("Composition",QVariant());
 
     // Set allowed filenames, e.g.
-    m_templates.insert("xtal.fdf",QStringList(""));
-    m_templates.insert("xtal.psf",QStringList(""));
+    m_templates.append("xtal.fdf");
+    m_templates.append("xtal.psf");
 
     // Setup for completion values
     m_completionFilename = "xtal.out";
@@ -59,31 +59,6 @@ namespace XtalOpt {
   SIESTAOptimizer::getInterpretedTemplates(Structure *structure)
   {
     QHash<QString, QString> hash = Optimizer::getInterpretedTemplates(structure);
-    QVariantList psfInfo = m_data["PSF info"].toList();
-    QList<QString> symbols = psfInfo.at(0).toHash().keys();
-    qSort(symbols);
-    // Make a loop over the alphabetically sorted symbols:
-    for (int i = 0; i < symbols.size(); i++) {
-      QString PSF = ".psf";
-      PSF.prepend(symbols.at(i));
-      QFile file;
-      QString line, str;
-      QString psf = PSF;
-      QTextStream in;
-      file.setFileName(psfInfo.at(0).toHash().value(symbols.at(i)).toString());
-      file.open(QIODevice::ReadOnly);
-      QTextStream out(&PSF);
-      //out.setDevice(&PSF);
-      in.setDevice(&file);
-      while (!in.atEnd()) {
-        line = in.readLine();
-        out << line + "\n";
-      }
-      file.close();
-      hash.insert(psf,PSF);
-    }
-    hash.remove("xtal.psf");
-    //buildPSFs();
     return hash;
   }
 } // end namespace XtalOpt

@@ -311,17 +311,6 @@ namespace GlobalSearch {
     virtual QDialog* dialog();
 
   protected:
-    /**
-     * @param filename Scheme or state file from which to load all
-     * templates in m_templates
-     */
-    virtual void readTemplatesFromSettings(const QString &filename = "");
-
-    /**
-     * @param filename Scheme or state file in which to write all
-     * templates in m_templates
-     */
-    virtual void writeTemplatesToSettings(const QString &filename = "");
 
     /**
      * @param filename Scheme or state file from which to load all

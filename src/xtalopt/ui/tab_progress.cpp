@@ -298,7 +298,7 @@ namespace XtalOpt {
     }
 
     XO_Prog_TableEntry e;
-    uint totalOptSteps = m_opt->optimizer()->getNumberOfOptSteps();
+    uint totalOptSteps = m_opt->getNumOptSteps();
     e.brush = QBrush (Qt::white);
     e.pen = QBrush (Qt::black);
 
@@ -321,7 +321,7 @@ namespace XtalOpt {
     switch (xtal->getStatus()) {
     case Xtal::InProcess: {
       xtalLocker.unlock();
-      QueueInterface::QueueStatus state = m_opt->queueInterface()->getStatus(xtal);
+      QueueInterface::QueueStatus state = m_opt->queueInterface(xtal->getCurrentOptStep())->getStatus(xtal);
       xtalLocker.relock();
       switch (state) {
       case QueueInterface::Running:
@@ -628,7 +628,7 @@ namespace XtalOpt {
                                        "Select optimization step to restart from:",
                                        optstep,
                                        1,
-                                       m_opt->optimizer()->getNumberOfOptSteps(),
+                                       m_opt->getNumOptSteps(),
                                        1,
                                        &ok);
     if (!ok) {
@@ -750,7 +750,7 @@ namespace XtalOpt {
 
     // End job if currently running
     if (m_context_xtal->getJobID()) {
-      m_opt->queueInterface()->stopJob(m_context_xtal);
+      m_opt->queueInterface(m_context_xtal->getCurrentOptStep())->stopJob(m_context_xtal);
     }
 
     m_opt->replaceWithRandom(m_context_xtal, "manual");
@@ -776,7 +776,7 @@ namespace XtalOpt {
 
     // End job if currently running
     if (m_context_xtal->getJobID()) {
-      m_opt->queueInterface()->stopJob(m_context_xtal);
+      m_opt->queueInterface(m_context_xtal->getCurrentOptStep())->stopJob(m_context_xtal);
     }
 
     XtalOpt *xtalopt = qobject_cast<XtalOpt*>(m_opt);
@@ -851,6 +851,7 @@ namespace XtalOpt {
 
   void TabProgress::updateRank()
   {
+/*
      Optimizer* opti = m_opt->optimizer();
      QString filePath = m_opt->filePath;
       QDir dir(filePath+"/ranked");
@@ -920,6 +921,7 @@ namespace XtalOpt {
             }
         }
     }
+*/
   }
 
   void TabProgress::printFile() {
