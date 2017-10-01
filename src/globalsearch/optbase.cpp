@@ -763,6 +763,7 @@ namespace GlobalSearch {
     if (ret == TT_Unknown) {
       qDebug() << "Error in" << __FUNCTION__ << ": unknown template type: "
                << name.c_str();
+      printBackTrace();
     }
 
     return ret;
@@ -849,11 +850,11 @@ namespace GlobalSearch {
     for (const auto& filename: filenames) {
       QString temp = settings->value(filename).toString();
 
-      if (!temp.isEmpty()) {
-        setOptimizerTemplate(optStep, filename.toStdString(),
-                             temp.toStdString());
+      setOptimizerTemplate(optStep, filename.toStdString(),
+                           temp.toStdString());
+
+      if (!temp.isEmpty())
         continue;
-      }
 
       // If "temp" is empty, perhaps we have some template filenames to open
       QString templateFile =

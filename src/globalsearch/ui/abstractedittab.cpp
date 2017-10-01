@@ -93,6 +93,8 @@ namespace GlobalSearch {
     connect(ui_push_remove, SIGNAL(clicked()),
             this, SLOT(removeCurrentOptStep()));
     connect(ui_list_optStep, SIGNAL(currentRowChanged(int)),
+            this, SLOT(populateTemplates()));
+    connect(ui_list_optStep, SIGNAL(currentRowChanged(int)),
             this, SLOT(updateEditWidget()));
     connect(ui_edit_user1, SIGNAL(editingFinished()),
             this, SLOT(updateUserValues()));
@@ -186,9 +188,6 @@ namespace GlobalSearch {
     }
 
     populateOptStepList();
-    populateTemplates();
-
-    updateEditWidget();
 
     ui_edit_user1->setText(m_opt->getUser1().c_str());
     ui_edit_user2->setText(m_opt->getUser2().c_str());
@@ -415,8 +414,8 @@ namespace GlobalSearch {
     for (int i = 1; i <= maxSteps; ++i) {
       ui_list_optStep->addItem(tr("Optimization %1").arg(i));
     }
-    ui_list_optStep->blockSignals(false);
 
+    ui_list_optStep->blockSignals(false);
     ui_list_optStep->setCurrentRow(currentOptStep);
   }
 

@@ -683,12 +683,16 @@ namespace XtalOpt {
 
       setQueueInterface(i, queueInterface.toStdString());
 
+      readQueueInterfaceTemplatesFromSettings(i, filename.toStdString());
+
       this->queueInterface(i)->readSettings(filename);
 
       QString optimizerName =
         settings->value("optimizer", "gulp").toString().toLower();
 
       setOptimizer(i, optimizerName.toStdString());
+
+      readOptimizerTemplatesFromSettings(i, filename.toStdString());
 
       this->optimizer(i)->readSettings(filename);
     }
