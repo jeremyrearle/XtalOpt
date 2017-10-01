@@ -44,26 +44,26 @@ namespace XtalOpt {
     for (unsigned int i = 0; i < numOptimizers; ++i) {
       switch (i) {
       case XtalOpt::OT_VASP:
-        m_optimizers.append(p->optimizers()["vasp"].get());
+        m_optimizers.append("vasp");
         break;
       case XtalOpt::OT_GULP:
-        m_optimizers.append(p->optimizers()["gulp"].get());
+        m_optimizers.append("gulp");
         break;
       case XtalOpt::OT_PWscf:
-        m_optimizers.append(p->optimizers()["pwscf"].get());
+        m_optimizers.append("pwscf");
         break;
       case XtalOpt::OT_CASTEP:
-        m_optimizers.append(p->optimizers()["castep"].get());
+        m_optimizers.append("castep");
         break;
       case XtalOpt::OT_SIESTA:
-        m_optimizers.append(p->optimizers()["siesta"].get());
+        m_optimizers.append("siesta");
         break;
      }
     }
 
     // Set the correct index
     if (m_opt->optimizer(0)) {
-      int optIndex = m_optimizers.indexOf(m_opt->optimizer(0));
+      int optIndex = m_optimizers.indexOf(m_opt->optimizer(0)->getIDString());
       ui_combo_optimizers->setCurrentIndex(optIndex);
     }
 
@@ -73,23 +73,23 @@ namespace XtalOpt {
     for (unsigned int i = 0; i < numQIs; ++i) {
       switch (i) {
       case XtalOpt::QI_LOCAL:
-        m_queueInterfaces.append(p->queueInterfaces()["local"].get());
+        m_queueInterfaces.append("local");
         break;
 #ifdef ENABLE_SSH
       case XtalOpt::QI_PBS:
-        m_queueInterfaces.append(p->queueInterfaces()["pbs"].get());
+        m_queueInterfaces.append("pbs");
         break;
       case XtalOpt::QI_SGE:
-        m_queueInterfaces.append(p->queueInterfaces()["sge"].get());
+        m_queueInterfaces.append("sge");
         break;
       case XtalOpt::QI_SLURM:
-        m_queueInterfaces.append(p->queueInterfaces()["slurm"].get());
+        m_queueInterfaces.append("slurm");
         break;
       case XtalOpt::QI_LSF:
-        m_queueInterfaces.append(p->queueInterfaces()["lsf"].get());
+        m_queueInterfaces.append("lsf");
         break;
       case XtalOpt::QI_LOADLEVELER:
-        m_queueInterfaces.append(p->queueInterfaces()["loadleveler"].get());
+        m_queueInterfaces.append("loadleveler");
         break;
         //
         // Don't forget to modify numQIs above, or additions here won't matter!
@@ -100,7 +100,9 @@ namespace XtalOpt {
 
     // Set the queue interface index
     if (m_opt->queueInterface(0)) {
-      int qiIndex = m_queueInterfaces.indexOf(m_opt->queueInterface(0));
+      int qiIndex = m_queueInterfaces.indexOf(
+                      m_opt->queueInterface(0)->getIDString()
+                    );
       ui_combo_queueInterfaces->setCurrentIndex(qiIndex);
     }
 

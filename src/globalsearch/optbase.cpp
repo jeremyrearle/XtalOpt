@@ -59,7 +59,6 @@ namespace GlobalSearch {
     test_nRunsEnd(100),
     test_nStructs(600),
     stateFileMutex(new QMutex),
-    backTraceMutex(new QMutex),
     readOnly(false),
     m_idString("Generic"),
 #ifdef ENABLE_SSH
@@ -144,14 +143,6 @@ namespace GlobalSearch {
 #endif // USE_CLI_SSH
   }
 #endif // ENABLE_SSH
-
-  void OptBase::printBackTrace() {
-    backTraceMutex->lock();
-    QStringList l = getBackTrace();
-    backTraceMutex->unlock();
-    for (int i = 0; i < l.size();i++)
-      qDebug() << l.at(i);
-  }
 
   QList<double> OptBase::getProbabilityList(
                              const QList<Structure*> &structures) {
@@ -536,6 +527,21 @@ namespace GlobalSearch {
     return str;
   }
 
+  std::unique_ptr<QueueInterface>
+  OptBase::createQueueInterface(const std::string& queueName)
+  {
+    qDebug() << "Error:" << __FUNCTION__ << "not implemented. It needs to"
+             << "be overridden in a derived class.";
+    return nullptr;
+  }
+
+  std::unique_ptr<Optimizer> OptBase::createOptimizer(const std::string& optName)
+  {
+    qDebug() << "Error:" << __FUNCTION__ << "not implemented. It needs to"
+             << "be overridden in a derived class.";
+    return nullptr;
+  }
+
   void OptBase::clearOptSteps()
   {
     m_queueInterfaceAtOptStep.clear();
@@ -557,8 +563,16 @@ namespace GlobalSearch {
     }
     // We will duplicate the most recent opt step otherwise
     else {
-      m_queueInterfaceAtOptStep.push_back(m_queueInterfaceAtOptStep.back());
-      m_optimizerAtOptStep.push_back(m_optimizerAtOptStep.back());
+      m_queueInterfaceAtOptStep.push_back(
+        createQueueInterface(
+          m_queueInterfaceAtOptStep.back()->getIDString().toStdString()
+        )
+      );
+      m_optimizerAtOptStep.push_back(
+        createOptimizer(
+          m_optimizerAtOptStep.back()->getIDString().toStdString()
+        )
+      );
       m_queueInterfaceTemplates.push_back(m_queueInterfaceTemplates.back());
       m_optimizerTemplates.push_back(m_optimizerTemplates.back());
     }
@@ -587,11 +601,15 @@ namespace GlobalSearch {
     size_t copyInd = (optStep == 0 ? 0 : optStep - 1);
     m_queueInterfaceAtOptStep.insert(
       m_queueInterfaceAtOptStep.begin() + optStep,
-      m_queueInterfaceAtOptStep[copyInd]
+      createQueueInterface(
+        m_queueInterfaceAtOptStep[copyInd]->getIDString().toStdString()
+      )
     );
     m_optimizerAtOptStep.insert(
       m_optimizerAtOptStep.begin() + optStep,
-      m_optimizerAtOptStep[copyInd]
+      createOptimizer(
+        m_optimizerAtOptStep[copyInd]->getIDString().toStdString()
+      )
     );
 
     m_queueInterfaceTemplates.insert(
@@ -629,18 +647,13 @@ namespace GlobalSearch {
 
   void OptBase::setQueueInterface(size_t optStep, const std::string& qiName)
   {
-    if (m_queueInterfaces.count(qiName) == 0) {
-      qDebug() << "Error in" << __FUNCTION__ << ": unknown Queue Interface"
-               << "Name:" << qiName.c_str();
-      return;
-    }
     if (optStep >= m_numOptSteps) {
       qDebug() << "Error in" << __FUNCTION__ << ": optStep," << optStep
                << ", is out of bounds. Number of opt steps is"
                << m_numOptSteps;
       return;
     }
-    m_queueInterfaceAtOptStep[optStep] = m_queueInterfaces[qiName].get();
+    m_queueInterfaceAtOptStep[optStep] = createQueueInterface(qiName);
   }
 
   std::string OptBase::getQueueInterfaceTemplate(size_t optStep,
@@ -675,18 +688,13 @@ namespace GlobalSearch {
 
   void OptBase::setOptimizer(size_t optStep, const std::string& optName)
   {
-    if (m_optimizers.count(optName) == 0) {
-      qDebug() << "Error in" << __FUNCTION__ << ": unknown optName:"
-               << optName.c_str();
-      return;
-    }
     if (optStep >= m_numOptSteps) {
       qDebug() << "Error in" << __FUNCTION__ << ": optStep," << optStep
                << ", is out of bounds. Number of opt steps is"
                << m_numOptSteps;
       return;
     }
-    m_optimizerAtOptStep[optStep] = m_optimizers[optName].get();
+    m_optimizerAtOptStep[optStep] = createOptimizer(optName);
   }
 
   std::string OptBase::getOptimizerTemplate(size_t optStep,

@@ -153,12 +153,12 @@ namespace GlobalSearch {
     /**
      * Emitted when the Optimizer changes.
      */
-    void optimizerChanged(const std::string&);
+    void optimizerChanged(int optStep, const std::string&);
 
     /**
      * Emitted when the QueueInterface changes.
      */
-    void queueInterfaceChanged(const std::string&);
+    void queueInterfaceChanged(int optStep, const std::string&);
 
   protected slots:
     /**
@@ -196,11 +196,11 @@ namespace GlobalSearch {
   protected:
     /// List of all optimizers. This must be filled in derived classes
     /// prior to calling initialize()
-    QList<Optimizer*> m_optimizers;
+    QStringList m_optimizers;
 
     /// List of all QueueInterfaces. This must be filled in derived classes
     /// prior to calling initialize()
-    QList<QueueInterface*> m_queueInterfaces;
+    QStringList m_queueInterfaces;
 
     /// Cached GUI pointer. This is set in DefaultEditTab
     QComboBox     *ui_combo_queueInterfaces;

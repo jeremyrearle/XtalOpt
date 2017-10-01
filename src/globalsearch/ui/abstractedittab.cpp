@@ -56,27 +56,27 @@ namespace GlobalSearch {
     ui_edit_edit->setCurrentFont(QFont("Courier"));
 
     // opt connections
-    connect(this, SIGNAL(optimizerChanged(const std::string&)),
-            m_opt, SLOT(setOptimizer(const std::string&)),
+    connect(this, SIGNAL(optimizerChanged(int, const std::string&)),
+            m_opt, SLOT(setOptimizer(int, const std::string&)),
             Qt::DirectConnection);
-    connect(this, SIGNAL(queueInterfaceChanged(const std::string&)),
-            m_opt, SLOT(setQueueInterface(const std::string&)),
+    connect(this, SIGNAL(queueInterfaceChanged(int, const std::string&)),
+            m_opt, SLOT(setQueueInterface(int, const std::string&)),
             Qt::DirectConnection);
 
     // Dialog connections
-    connect(this, SIGNAL(optimizerChanged(const std::string&)),
+    connect(this, SIGNAL(optimizerChanged(int, const std::string&)),
             m_dialog, SIGNAL(tabsUpdateGUI()));
-    connect(this, SIGNAL(queueInterfaceChanged(const std::string&)),
+    connect(this, SIGNAL(queueInterfaceChanged(int, const std::string&)),
             m_dialog, SIGNAL(tabsUpdateGUI()));
 
     // Edit tab connections
-    connect(this, SIGNAL(optimizerChanged(const std::string&)),
+    connect(this, SIGNAL(optimizerChanged(int, const std::string&)),
             this, SLOT(populateTemplates()));
-    connect(this, SIGNAL(queueInterfaceChanged(const std::string&)),
+    connect(this, SIGNAL(queueInterfaceChanged(int, const std::string&)),
             this, SLOT(populateTemplates()));
-    connect(this, SIGNAL(optimizerChanged(const std::string&)),
+    connect(this, SIGNAL(optimizerChanged(int, const std::string&)),
             this, SLOT(populateOptStepList()));
-    connect(this, SIGNAL(queueInterfaceChanged(const std::string&)),
+    connect(this, SIGNAL(queueInterfaceChanged(int, const std::string&)),
             this, SLOT(populateOptStepList()));
     connect(ui_push_optimizerConfig, SIGNAL(clicked()),
             this, SLOT(configureOptimizer()));
@@ -118,28 +118,18 @@ namespace GlobalSearch {
     ui_combo_queueInterfaces->blockSignals(true);
     ui_combo_queueInterfaces->clear();
     index = 0;
-    for (QList<QueueInterface*>::const_iterator
-           it = m_queueInterfaces.constBegin(),
-           it_end = m_queueInterfaces.constEnd();
-         it != it_end;
-         ++it) {
-      ui_combo_queueInterfaces->insertItem(index++,
-                                           (*it)->getIDString());
-    }
+    for (const auto& qiName: m_queueInterfaces)
+      ui_combo_queueInterfaces->insertItem(index++, qiName);
+
     ui_combo_queueInterfaces->blockSignals(false);
 
     //  Optimizers
     ui_combo_optimizers->blockSignals(true);
     ui_combo_optimizers->clear();
     index = 0;
-    for (QList<Optimizer*>::const_iterator
-           it = m_optimizers.constBegin(),
-           it_end = m_optimizers.constEnd();
-         it != it_end;
-         ++it) {
-      ui_combo_optimizers->insertItem(index++,
-                                      (*it)->getIDString());
-    }
+    for (const auto& optName: m_optimizers)
+      ui_combo_optimizers->insertItem(index++, optName);
+
     ui_combo_optimizers->blockSignals(false);
 
     AbstractTab::initialize();
@@ -156,11 +146,11 @@ namespace GlobalSearch {
       return;
     }
     Q_ASSERT_X(
-      m_queueInterfaces.contains(getCurrentQueueInterface()) ||
+      m_queueInterfaces.contains(getCurrentQueueInterface()->getIDString()) ||
       getCurrentQueueInterface() == 0, Q_FUNC_INFO,
       "Current queue interface is unknown to AbstractEditTab."
     );
-    Q_ASSERT_X(m_optimizers.contains(getCurrentOptimizer()) ||
+    Q_ASSERT_X(m_optimizers.contains(getCurrentOptimizer()->getIDString()) ||
                getCurrentOptimizer() == 0, Q_FUNC_INFO,
                "Current optimizer is unknown to AbstractEditTab.");
     Q_ASSERT(m_optimizers.size() == ui_combo_optimizers->count());
@@ -168,14 +158,14 @@ namespace GlobalSearch {
 
     if (getCurrentOptimizer()) {
       int optIndex = m_optimizers.indexOf(
-                       getCurrentOptimizer()
+                       getCurrentOptimizer()->getIDString()
                      );
       ui_combo_optimizers->setCurrentIndex(optIndex);
     }
 
     if (getCurrentQueueInterface()) {
       int qiIndex = m_queueInterfaces.indexOf(
-                      getCurrentQueueInterface()
+                      getCurrentQueueInterface()->getIDString()
                     );
       ui_combo_queueInterfaces->setCurrentIndex(qiIndex);
       if (getCurrentQueueInterface()->hasDialog()) {
@@ -215,7 +205,7 @@ namespace GlobalSearch {
   void AbstractEditTab::updateQueueInterface()
   {
     Q_ASSERT_X(
-      m_queueInterfaces.contains(getCurrentQueueInterface()) ||
+      m_queueInterfaces.contains(getCurrentQueueInterface()->getIDString()) ||
       getCurrentQueueInterface() == 0, Q_FUNC_INFO,
       "Current queue interface is unknown to AbstractEditTab."
     );
@@ -226,12 +216,12 @@ namespace GlobalSearch {
 
     // Check that queueInterface has actually changed
     if (m_queueInterfaces.indexOf(
-          getCurrentQueueInterface()
+          getCurrentQueueInterface()->getIDString()
         ) == newQiIndex && getCurrentQueueInterface() != 0) {
       return;
     }
 
-    QueueInterface *qi = m_queueInterfaces[newQiIndex];
+    QueueInterface *qi = m_opt->queueInterface(newQiIndex);
 
     if (qi->hasDialog()) {
       ui_push_queueInterfaceConfig->setEnabled(true);
@@ -239,12 +229,13 @@ namespace GlobalSearch {
       ui_push_queueInterfaceConfig->setEnabled(false);
     }
 
-    emit queueInterfaceChanged(qi->getIDString().toLower().toStdString());
+    emit queueInterfaceChanged(getCurrentOptStep(),
+                               qi->getIDString().toLower().toStdString());
   }
 
   void AbstractEditTab::updateOptimizer()
   {
-    Q_ASSERT_X(m_optimizers.contains(getCurrentOptimizer()) ||
+    Q_ASSERT_X(m_optimizers.contains(getCurrentOptimizer()->getIDString()) ||
                getCurrentOptimizer() == 0, Q_FUNC_INFO,
                "Current optimizer is unknown to AbstractEditTab.");
 
@@ -253,12 +244,12 @@ namespace GlobalSearch {
     Q_ASSERT(newOptimizerIndex <= m_optimizers.size() - 1);
 
     // Check that optimizer has actually changed
-    if (m_optimizers.indexOf(getCurrentOptimizer()) ==
+    if (m_optimizers.indexOf(getCurrentOptimizer()->getIDString()) ==
         newOptimizerIndex && getCurrentOptimizer() != 0) {
       return;
     }
 
-    Optimizer *o = m_optimizers[newOptimizerIndex];
+    Optimizer *o = m_opt->optimizer(newOptimizerIndex);
 
     if (o->hasDialog()) {
       ui_push_optimizerConfig->setEnabled(true);
@@ -266,7 +257,8 @@ namespace GlobalSearch {
       ui_push_optimizerConfig->setEnabled(false);
     }
 
-    emit optimizerChanged(o->getIDString().toLower().toStdString());
+    emit optimizerChanged(getCurrentOptStep(),
+                          o->getIDString().toLower().toStdString());
   }
 
   void AbstractEditTab::configureQueueInterface()

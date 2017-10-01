@@ -32,6 +32,8 @@
 #include <memory>
 #include <mutex>
 
+#include <globalsearch/bt.h> // TEMPORARY
+
 class QMutex;
 
 namespace GlobalSearch {
@@ -271,26 +273,50 @@ for (ind = 0; ind < probs.size(); ind++)
     QueueManager* queue() {return m_queue;};
 
     /**
+     * Create a queue interface with a given name.
+     *
+     * Override this function in derived classes to change the allowed
+     * queue interfaces.
+     *
+     * @param queueName The name of the queue interface.
+     *
+     * @return A unique_ptr rvalue with the queue interface pointer stored in
+     *         it. Contains a null pointer if @p queueName is invalid.
+     */
+    virtual std::unique_ptr<QueueInterface>
+    createQueueInterface(const std::string& queueName);
+
+    /**
+     * Create an optimizer with a given name.
+     *
+     * Override this function in derived classes to change the allowed
+     * optimizers.
+     *
+     * @param optName The name of the optimizer.
+     *
+     * @return A unique_ptr rvalue with the optimizer pointer stored in
+     *         it. Contains a null pointer if @p optName is invalid.
+     */
+    virtual std::unique_ptr<Optimizer>
+    createOptimizer(const std::string& optName);
+
+    /**
      * @return A pointer to the associated QueueManager.
      * @sa setQueueInterface
      * @sa queueInterfaceChanged
      */
     QueueInterface* queueInterface(int optStep) const
     {
-      if (optStep + 1 > m_numOptSteps) {
+      if (optStep >= getNumOptSteps()) {
         qDebug() << "Error in" << __FUNCTION__ << ": optStep," << optStep
-                 << ", is greater than the number of optimization steps:"
-                 << m_numOptSteps;
+                 << ", is out of bounds! The number of optimization steps is:"
+                 << getNumOptSteps();
+        qDebug() << "Backtrace:";
+        printBackTrace();
         return nullptr;
       }
-      return m_queueInterfaceAtOptStep[optStep];
+      return m_queueInterfaceAtOptStep[optStep].get();
     }
-
-    /**
-     * @return A reference to our map of queue interfaces.
-     */
-    std::map<std::string, std::unique_ptr<QueueInterface>>& queueInterfaces()
-      { return m_queueInterfaces; }
 
     /**
      * @return A pointer to the current Optimizer.
@@ -299,20 +325,16 @@ for (ind = 0; ind < probs.size(); ind++)
      */
     Optimizer* optimizer(int optStep) const
     {
-      if (optStep + 1 > m_numOptSteps) {
+      if (optStep >= getNumOptSteps()) {
         qDebug() << "Error in" << __FUNCTION__ << ": optStep," << optStep
-                 << ", is greater than the number of optimization steps:"
-                 << m_numOptSteps;
+                 << ", is out of bounds! The number of optimization steps is:"
+                 << getNumOptSteps();
+        qDebug() << "Backtrace:";
+        printBackTrace();
         return nullptr;
       }
-      return m_optimizerAtOptStep[optStep];
+      return m_optimizerAtOptStep[optStep].get();
     }
-
-    /**
-     * @return A reference to our map of optimizers.
-     */
-    std::map<std::string, std::unique_ptr<Optimizer>>& optimizers()
-      { return m_optimizers; }
 
     /**
      * @return A pointer to the SSHManager instance.
@@ -389,9 +411,6 @@ for (ind = 0; ind < probs.size(); ind++)
     /// This should be locked whenever the state file (resume file) is
     /// being written
     QMutex *stateFileMutex;
-
-    /// This is locked when generating a backtrace.
-    QMutex *backTraceMutex;
 
     /// A mutex for saving
     std::mutex saveMutex;
@@ -638,11 +657,6 @@ for (ind = 0; ind < probs.size(); ind++)
     void setReadOnlyFalse() {readOnly = false;};
 
     /**
-     * Prints a backtrace to the terminal
-     */
-    void printBackTrace();
-
-    /**
      * Get the number of optimization steps for our search.
      *
      * @return The number of optimization steps for our search.
@@ -723,7 +737,7 @@ for (ind = 0; ind < probs.size(); ind++)
      *
      * @param optStep The opt step for which to set the optimizer
      * @param optName New Optimizer to use. Does nothing if @p optName
-     *                isn't in the m_optimizers map.
+     *                isn't recognized.
      *
      * @sa optimizer
      */
@@ -1030,16 +1044,10 @@ for (ind = 0; ind < probs.size(); ind++)
     int m_numOptSteps;
 
     /// Queue interfaces for particular opt steps
-    std::vector<QueueInterface*> m_queueInterfaceAtOptStep;
-
-    /// A map of all of our available queue interfaces
-    std::map<std::string, std::unique_ptr<QueueInterface>> m_queueInterfaces;
+    std::vector<std::unique_ptr<QueueInterface>> m_queueInterfaceAtOptStep;
 
     /// Optimizer for particular opt steps
-    std::vector<Optimizer*> m_optimizerAtOptStep;
-
-    /// A map of all of our available optimizers
-    std::map<std::string, std::unique_ptr<Optimizer>> m_optimizers;
+    std::vector<std::unique_ptr<Optimizer>> m_optimizerAtOptStep;
 
     /// A vector of templates for each opt step. Each vector element is a map
     /// of the template name to its value.

@@ -35,6 +35,7 @@
 #include <globalsearch/bt.h>
 #include <globalsearch/utilities/fileutils.h>
 #include <globalsearch/utilities/makeunique.h>
+#include <globalsearch/utilities/utilityfunctions.h>
 
 #ifdef ENABLE_SSH
 #include <globalsearch/sshmanager.h>
@@ -76,24 +77,6 @@ namespace XtalOpt {
     xtalInitMutex = new QMutex;
     m_idString = "XtalOpt";
     m_schemaVersion = 2;
-
-    // Let's populate our optimizers and queue interfaces
-    m_optimizers["castep"] = make_unique<CASTEPOptimizer>(this);
-    m_optimizers["gulp"]   = make_unique<GULPOptimizer>(this);
-    m_optimizers["pwscf"]  = make_unique<PWscfOptimizer>(this);
-    m_optimizers["siesta"] = make_unique<SIESTAOptimizer>(this);
-    m_optimizers["vasp"]   = make_unique<VASPOptimizer>(this);
-
-    m_queueInterfaces["local"] = make_unique<LocalQueueInterface>(this);
-
-#ifdef ENABLE_SSH
-    m_queueInterfaces["loadleveler"] =
-        make_unique<LoadLevelerQueueInterface>(this);
-    m_queueInterfaces["lsf"]   = make_unique<LsfQueueInterface>(this);
-    m_queueInterfaces["pbs"]   = make_unique<PbsQueueInterface>(this);
-    m_queueInterfaces["sge"]   = make_unique<SgeQueueInterface>(this);
-    m_queueInterfaces["slurm"] = make_unique<SlurmQueueInterface>(this);
-#endif
 
     // Read the general settings
     readSettings();
@@ -693,6 +676,7 @@ namespace XtalOpt {
     size_t numOptSteps = settings->value("numOptSteps", "1").toUInt();
 
     for (size_t i = 0; i < numOptSteps; ++i) {
+      appendOptStep();
 
       QString queueInterface =
           settings->value("queueInterface", "local").toString().toLower();
@@ -3062,6 +3046,58 @@ namespace XtalOpt {
       << "%id% -- xtal id number\n";
 
     return str;
+  }
+
+  std::unique_ptr<GlobalSearch::QueueInterface>
+  XtalOpt::createQueueInterface(const std::string& queueName)
+  {
+
+    if (caseInsensitiveCompare(queueName, "local"))
+      return make_unique<LocalQueueInterface>(this);
+
+#ifdef ENABLE_SSH
+    if (caseInsensitiveCompare(queueName, "loadleveler"))
+      return make_unique<LoadLevelerQueueInterface>(this);
+
+    if (caseInsensitiveCompare(queueName, "lsf"))
+      return make_unique<LsfQueueInterface>(this);
+
+    if (caseInsensitiveCompare(queueName, "pbs"))
+      return make_unique<PbsQueueInterface>(this);
+
+    if (caseInsensitiveCompare(queueName, "sge"))
+      return make_unique<SgeQueueInterface>(this);
+
+    if (caseInsensitiveCompare(queueName, "slurm"))
+      return make_unique<SlurmQueueInterface>(this);
+#endif
+
+    qDebug() << "Error in" << __FUNCTION__ << ": Unknown queue interface:"
+             << queueName.c_str();
+    return nullptr;
+  }
+
+  std::unique_ptr<GlobalSearch::Optimizer>
+  XtalOpt::createOptimizer(const std::string& optName)
+  {
+    if (caseInsensitiveCompare(optName, "castep"))
+      return make_unique<CASTEPOptimizer>(this);
+
+    if (caseInsensitiveCompare(optName, "gulp"))
+      return make_unique<GULPOptimizer>(this);
+
+    if (caseInsensitiveCompare(optName, "pwscf"))
+      return make_unique<PWscfOptimizer>(this);
+
+    if (caseInsensitiveCompare(optName, "siesta"))
+      return make_unique<SIESTAOptimizer>(this);
+
+    if (caseInsensitiveCompare(optName, "vasp"))
+      return make_unique<VASPOptimizer>(this);
+
+    qDebug() << "Error in" << __FUNCTION__ << ": Unknown optimizer:"
+             << optName.c_str();
+    return nullptr;
   }
 
   bool XtalOpt::load(const QString &filename, const bool forceReadOnly)
