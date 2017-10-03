@@ -549,8 +549,6 @@ namespace GlobalSearch {
       qDebug() << "Error in" << __FUNCTION__ << ": optStep," << optStep
                << ", is out of bounds! The number of optimization steps is:"
                << getNumOptSteps();
-      qDebug() << "Backtrace:";
-      printBackTrace();
       return nullptr;
     }
     return m_queueInterfaceAtOptStep[optStep].get();
@@ -562,8 +560,6 @@ namespace GlobalSearch {
       qDebug() << "Error in" << __FUNCTION__ << ": optStep," << optStep
                << ", is out of bounds! The number of optimization steps is:"
                << getNumOptSteps();
-      qDebug() << "Backtrace:";
-      printBackTrace();
       return nullptr;
     }
     return m_optimizerAtOptStep[optStep].get();
@@ -681,6 +677,12 @@ namespace GlobalSearch {
       return;
     }
     m_queueInterfaceAtOptStep[optStep] = createQueueInterface(qiName);
+
+    // We need to populate the templates list with empty templates
+    for (const auto& templateName:
+         m_queueInterfaceAtOptStep[optStep]->getTemplateFileNames()) {
+      setQueueInterfaceTemplate(optStep, templateName.toStdString(), "");
+    }
   }
 
   std::string OptBase::getQueueInterfaceTemplate(size_t optStep,
@@ -722,6 +724,12 @@ namespace GlobalSearch {
       return;
     }
     m_optimizerAtOptStep[optStep] = createOptimizer(optName);
+
+    // We need to populate the templates list with empty templates
+    for (const auto& templateName:
+         m_optimizerAtOptStep[optStep]->getTemplateFileNames()) {
+      setOptimizerTemplate(optStep, templateName.toStdString(), "");
+    }
   }
 
   std::string OptBase::getOptimizerTemplate(size_t optStep,
@@ -790,7 +798,6 @@ namespace GlobalSearch {
     if (ret == TT_Unknown) {
       qDebug() << "Error in" << __FUNCTION__ << ": unknown template type: "
                << name.c_str();
-      printBackTrace();
     }
 
     return ret;

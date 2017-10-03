@@ -65,6 +65,16 @@ namespace GlobalSearch {
     virtual void lockGUI() override;
 
     /**
+     * Update the queue interface in the GUI.
+     */
+    virtual void updateGUIQueueInterface();
+
+    /**
+     * Update the optimizer in the GUI.
+     */
+    virtual void updateGUIOptimizer();
+
+    /**
      * Force a refresh of the GUI elements using the internal state.
      */
     virtual void updateGUI() override;
